@@ -280,3 +280,5 @@ function Profile({ user }) {
     );
   }
 }
+
+export default Profile;
