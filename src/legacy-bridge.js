@@ -4,6 +4,7 @@ import {
   getUserPrescriptions,
   getUserCycles,
   createUserDocument,
+  updateUserDocument,
   createUserPrescription,
   createCycleEntry,
 } from './services/storage.js';
@@ -23,7 +24,19 @@ window.getCurrentUser = getCurrentUser;
 window.getUserDocuments = getUserDocuments;
 window.getUserPrescriptions = getUserPrescriptions;
 window.getUserCycles = getUserCycles;
-window.createUserDocument = createUserDocument;
+window.createUserDocument = async (userId, data) => {
+  let file = data.file || null;
+
+  if (!file && data.fileUrl && data.fileUrl.startsWith('data:')) {
+    const response = await fetch(data.fileUrl);
+    const blob = await response.blob();
+    file = new File([blob], data.fileName || 'document', {
+      type: data.fileType || blob.type || 'application/octet-stream',
+    });
+  }
+
+  return createUserDocument(userId, { ...data, file });
+};
 window.createUserPrescription = createUserPrescription;
 window.createCycleEntry = createCycleEntry;
 window.getHealthAssistance = getHealthAssistance;
@@ -47,6 +60,20 @@ window.trickleUpdateObject = async (type, id, data) => {
   if (!user) throw new Error('You must be logged in.');
 
   if (type.startsWith('document:')) {
+    if (data.FileURL && data.FileURL.startsWith('data:')) {
+      const response = await fetch(data.FileURL);
+      const blob = await response.blob();
+      const file = new File([blob], data.FileName || 'document', {
+        type: data.FileType || blob.type || 'application/octet-stream',
+      });
+      return updateUserDocument(user.objectId, id, {
+        fileName: data.FileName,
+        category: data.Category,
+        notes: data.Notes,
+        file,
+      });
+    }
+
     const { data: row, error } = await supabase.from('documents').update({
       file_name: data.FileName,
       category: data.Category,
