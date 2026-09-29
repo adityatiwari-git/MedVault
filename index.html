@@ -1,0 +1,224 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>MedVault - Secure Women's Health Records</title>
+    <meta name="description" content="Secure, private, and AI-powered health record management system for women. Track cycles, manage prescriptions, and get personalized health insights.">
+    <meta name="keywords" content="women's health, health records, menstrual tracking, prescription tracker, medical documents, AI health assistant">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="MedVault - Secure Women's Health Records">
+    <meta property="og:description" content="Secure, private, and AI-powered health record management system for women. Track cycles, manage prescriptions, and get personalized health insights.">
+
+    <!-- Twitter -->
+    <meta name="twitter:title" content="MedVault - Secure Women's Health Records">
+    <meta name="twitter:description" content="Secure, private, and AI-powered health record management system for women. Track cycles, manage prescriptions, and get personalized health insights.">
+
+    <script src="https://resource.trickle.so/vendor_lib/unpkg/react@18/umd/react.production.min.js"></script>
+    <script src="https://resource.trickle.so/vendor_lib/unpkg/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://resource.trickle.so/vendor_lib/unpkg/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://resource.trickle.so/vendor_lib/unpkg/lucide-static@0.516.0/font/lucide.css" rel="stylesheet">
+
+    <style type="text/tailwindcss">
+        @layer theme {
+        :root {
+            --primary-color: #d946ef;
+            --primary-light: #f3e8ff;
+            --secondary-color: #a855f7;
+            --accent-color: #ec4899;
+            --accent-light: #fce7f3;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+            --text-primary: #374151;
+            --text-secondary: #6b7280;
+            --text-light: #9ca3af;
+            --border-color: #e5e7eb;
+            --background-color: #ffffff;
+            --background-secondary: #f8fafc;
+            --background-gradient: linear-gradient(135deg, #fef7ff 0%, #f3e8ff 50%, #fce7f3 100%);
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --sidebar-width: 288px;
+            --mobile-sidebar-width: 100vw;
+            --content-padding: 2rem;
+            --mobile-content-padding: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --content-padding: var(--mobile-content-padding);
+            }
+        }
+    }
+
+    @layer base {
+        * {
+            @apply transition-all duration-300 ease-in-out;
+        }
+        
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            color: var(--text-primary);
+            background: var(--background-gradient);
+            min-height: 100vh;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.025em;
+        }
+        
+        h1 { @apply text-3xl lg:text-4xl; }
+        h2 { @apply text-2xl lg:text-3xl; }
+        h3 { @apply text-xl lg:text-2xl; }
+    }
+
+    @layer components {
+        .btn {
+            @apply px-6 py-3 rounded-xl font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-opacity-50 transform hover:scale-105 active:scale-95;
+            box-shadow: var(--card-shadow);
+        }
+
+        @media (max-width: 640px) {
+            .btn {
+                @apply px-4 py-2 text-sm;
+            }
+        }
+        
+        .btn-primary {
+            @apply text-white;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        }
+        
+        .btn-primary:hover {
+            box-shadow: var(--card-shadow-hover);
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+        }
+        
+        .btn-secondary {
+            @apply bg-white text-gray-700 border-2;
+            border-color: var(--border-color);
+        }
+        
+        .btn-secondary:hover {
+            @apply bg-gray-50 border-purple-200;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .input-field {
+            @apply w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white;
+            border-color: var(--border-color);
+            transition: all 0.3s ease;
+        }
+        
+        .input-field:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(217, 70, 239, 0.1);
+        }
+        
+        .card {
+            @apply bg-white rounded-2xl p-6 border border-gray-100;
+            box-shadow: var(--card-shadow);
+            backdrop-filter: blur(10px);
+        }
+        
+        .card:hover {
+            box-shadow: var(--card-shadow-hover);
+            @apply transform -translate-y-1;
+        }
+        
+        .nav-item {
+            @apply flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 cursor-pointer;
+        }
+        
+        .nav-item.active {
+            background: linear-gradient(135deg, var(--primary-light), var(--accent-light));
+            color: var(--primary-color);
+            box-shadow: var(--card-shadow);
+        }
+        
+        .nav-item:hover {
+            background-color: var(--primary-light);
+            @apply transform translate-x-1;
+        }
+        
+        .stat-card {
+            @apply card cursor-pointer;
+        }
+        
+        .stat-card:hover {
+            @apply transform scale-105;
+            box-shadow: var(--card-shadow-hover);
+        }
+        
+        .icon-container {
+            @apply rounded-xl flex items-center justify-center transition-all duration-300;
+        }
+        
+        .gradient-bg {
+            background: var(--background-gradient);
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    }
+
+    @layer utilities {
+        .text-gradient {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        .animate-pulse-soft {
+            animation: pulse-soft 2s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    }
+    </style>
+
+    <meta property="og:image" content="https://app.trickle.so/storage/app/ChatGPT Image Sep 26, 2025, 02_42_32 PM.png">
+    <meta name="twitter:image" content="https://app.trickle.so/storage/app/ChatGPT Image Sep 26, 2025, 02_42_32 PM.png">
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <!-- Load components -->
+    <script type="text/babel" src="components/AuthForm.js"></script>
+    <script type="text/babel" src="components/Navigation.js"></script>
+    <script type="text/babel" src="components/Dashboard.js"></script>
+    <script type="text/babel" src="components/Records.js"></script>
+    <script type="text/babel" src="components/CycleTracker.js"></script>
+    <script type="text/babel" src="components/AIAssistant.js"></script>
+    <script type="text/babel" src="components/Profile.js"></script>
+    <script type="text/babel" src="utils/auth.js"></script>
+    <script type="text/babel" src="utils/storage.js"></script>
+    <script type="text/babel" src="utils/aiAgent.js"></script>
+    <script type="text/babel" src="app.js"></script>
+
+
+</body>
+
+</html>
