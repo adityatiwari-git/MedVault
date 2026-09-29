@@ -588,3 +588,4 @@ function Records({ user }) {
     return null;
   }
 }
+export default Records;
