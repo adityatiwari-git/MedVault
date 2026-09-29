@@ -1,4 +1,5 @@
 import React from 'react';
+import { getUserCycles, createCycleEntry, updateCycleEntry, deleteCycleEntry } from '../services/storage.js';
 
 function CycleTracker({ user }) {
   try {
@@ -134,7 +135,7 @@ Current date: ${new Date().toISOString().split('T')[0]}`;
     const handleDelete = async (cycleId) => {
       if (confirm('Are you sure you want to delete this cycle entry?')) {
         try {
-          await trickleDeleteObject(`cycle_tracking:${user.objectId}`, cycleId);
+          await deleteCycleEntry(user.objectId, cycleId);
           loadCycles();
         } catch (error) {
           console.error('Error deleting cycle entry:', error);
