@@ -1,4 +1,5 @@
 import React from 'react';
+import { loginUser, registerUser } from '../services/auth.js';
 
 function AuthForm({ onLogin }) {
   try {
