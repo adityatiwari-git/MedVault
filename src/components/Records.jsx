@@ -1,4 +1,5 @@
 import React from 'react';
+import { getUserDocuments, createUserDocument, updateUserDocument, deleteUserDocument } from '../services/storage.js';
 
 function Records({ user }) {
   try {
@@ -128,14 +129,14 @@ function Records({ user }) {
 
           // Only update file if a new one was uploaded
           if (uploadForm.file) {
-            const fileUrl = await simulateUpload(uploadForm.file);
+            await simulateUpload(uploadForm.file);
             updateData.FileURL = fileUrl;
             updateData.FileType = uploadForm.file.type;
             updateData.FileSize = uploadForm.file.size;
             updateData.HasFile = true;
           }
 
-          await trickleUpdateObject(`document:${user.objectId}`, editingDoc.objectId, updateData);
+          await updateUserDocument(user.objectId, editingDoc.objectId, { fileName: updateData.FileName, category: updateData.Category, notes: updateData.Notes, file: uploadForm.file });
         } else {
           // Create new document
           let fileUrl = '';
@@ -152,7 +153,7 @@ function Records({ user }) {
             fileName: uploadForm.fileName,
             category: uploadForm.category,
             notes: uploadForm.notes,
-            fileUrl: fileUrl,
+            file: uploadForm.file,
             fileType: fileType,
             fileSize: fileSize,
             hasFile: !!uploadForm.file
@@ -186,7 +187,7 @@ function Records({ user }) {
     const handleDelete = async (docId) => {
       if (confirm('Are you sure you want to delete this document?')) {
         try {
-          await trickleDeleteObject(`document:${user.objectId}`, docId);
+          await deleteUserDocument(user.objectId, docId);
           loadDocuments();
         } catch (error) {
           console.error('Error deleting document:', error);
