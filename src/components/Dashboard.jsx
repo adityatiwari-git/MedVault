@@ -1,4 +1,5 @@
 import React from 'react';
+import { getUserDocuments, getUserPrescriptions, getUserCycles } from '../services/storage.js';
 
 function Dashboard({ user }) {
   try {
