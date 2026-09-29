@@ -334,3 +334,4 @@ What would you like to know?`,
     return null;
   }
 }
+export default AIAssistant;
