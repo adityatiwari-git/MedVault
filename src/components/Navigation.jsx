@@ -83,3 +83,5 @@ function Navigation({ activeTab, onTabChange, onLogout, user, isMobileOpen, onMo
     return null;
   }
 }
+
+export default Navigation;
