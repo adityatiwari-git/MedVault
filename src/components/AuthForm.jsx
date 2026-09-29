@@ -185,3 +185,4 @@ function AuthForm({ onLogin }) {
     return null;
   }
 }
+export default AuthForm;
