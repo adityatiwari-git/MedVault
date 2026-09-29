@@ -15,3 +15,124 @@ body {
   min-width: 320px;
   min-height: 100vh;
 }
+
+body {
+  background: #ffffff;
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, #faf5ff 0%, #fdf2f8 50%, #eff6ff 100%);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #d946ef, #a855f7);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 8px 30px rgba(17, 24, 39, 0.06);
+}
+
+.btn {
+  border-radius: 0.75rem;
+  padding: 0.7rem 1rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  color: #ffffff;
+  background: linear-gradient(135deg, #d946ef, #a855f7);
+  box-shadow: 0 6px 18px rgba(168, 85, 247, 0.22);
+}
+
+.btn-secondary {
+  color: #374151;
+  background: #f3f4f6;
+}
+
+.input-field {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #ffffff;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-field:focus {
+  border-color: #a855f7;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  color: #4b5563;
+  transition: all 0.2s ease;
+}
+
+.nav-item:hover,
+.nav-item.active {
+  color: #7e22ce;
+  background: linear-gradient(90deg, #faf5ff, #fdf2f8);
+}
+
+.icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  box-shadow: 0 8px 24px rgba(168, 85, 247, 0.2);
+}
+
+.stat-card {
+  border: 1px solid;
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
