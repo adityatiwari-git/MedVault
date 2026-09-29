@@ -490,3 +490,4 @@ Current date: ${new Date().toISOString().split('T')[0]}`;
     return null;
   }
 }
+export default CycleTracker;
