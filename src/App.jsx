@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getCurrentUser, logout } from './services/auth.js';
 import AuthForm from './components/AuthForm.jsx';
 import Navigation from './components/Navigation.jsx';
 import Dashboard from './components/Dashboard.jsx';
@@ -14,7 +15,18 @@ function App() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   useEffect(() => {
-    setIsLoading(false);
+    let mounted = true;
+
+    getCurrentUser().then((user) => {
+      if (mounted) {
+        setCurrentUser(user);
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const handleLogin = (user) => {
@@ -22,8 +34,13 @@ function App() {
     setActiveTab('dashboard');
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      setCurrentUser(null);
+      setActiveTab('dashboard');
+    }
   };
 
   if (isLoading) {
