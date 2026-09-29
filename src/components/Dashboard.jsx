@@ -227,3 +227,4 @@ function Dashboard({ user }) {
     return null;
   }
 }
+export default Dashboard;
