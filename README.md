@@ -1,93 +1,116 @@
-# MedVault - Women's Health Record & AI Assistant App
+# MedVault — Women's Health Records & AI Assistant
 
-## Overview
-MedVault is a secure, privacy-first health record management system designed specifically for women. It provides comprehensive tools for tracking health documents, menstrual cycles, prescriptions, and offers AI-powered health insights.
+MedVault is a women's health record application for storing health documents, tracking menstrual cycles, managing prescriptions, and accessing educational AI-assisted health information.
 
-## Key Features
+## Current migration
 
-### 🔐 User Authentication & Privacy
-- Secure email/password authentication
-- User-specific data isolation
-- Privacy-first design with encrypted storage
+MedVault is being moved from its original Trickle runtime to a standalone React application.
 
-### 📱 Core Functionality
-- **Health Records Management**: Upload, categorize, and organize medical documents
-- **Menstrual Cycle Tracker**: Log periods, symptoms, and get AI-powered insights
-- **Prescription Manager**: Track medications with reminder capabilities
-- **AI Health Assistant**: Get personalized health guidance and insights
-- **User Dashboard**: Overview of health data and recent activity
+Target architecture:
 
-### 🎨 Design & UX
-- Modern, feminine health-focused design
-- Clean, intuitive interface
-- Responsive layout for all devices
-- Pink/purple color scheme with trust-building elements
-
-## Database Schema
-
-### Users Table
-- Name, Email, Password (hashed), Age, Gender
-
-### Documents Table (per user)
-- File information, category, upload date, AI summary, notes
-
-### Cycle Tracking Table (per user)
-- Period dates, flow intensity, symptoms, AI predictions
-
-### Prescriptions Table (per user)
-- Medicine details, dosage, frequency, reminders
-
-## AI Integration
-- Document summarization for easy understanding
-- Cycle pattern analysis and fertility insights
-- Health question assistance with educational responses
-- Medication guidance (non-prescriptive)
-
-## Privacy & Security
-- End-to-end encryption
-- Secure data storage
-- No data sharing across accounts
-- HIPAA-compliant design principles
-
-## Technology Stack
-- Frontend: React 18 with modern JavaScript
-- Styling: TailwindCSS with custom health theme
-- Database: Trickle Database with user-scoped data
-- AI: Integrated AI agent for health assistance
-- Icons: Lucide icon system
-
-## Project Structure
 ```
-/
-├── index.html              # Main entry point
-├── app.js                 # Main application component
-├── components/            # React components
-│   ├── AuthForm.js       # Login/signup
-│   ├── Navigation.js     # Sidebar navigation
-│   ├── Dashboard.js      # Health overview
-│   ├── Records.js        # Document management
-│   ├── CycleTracker.js   # Period tracking
-│   ├── AIAssistant.js    # AI chat interface
-│   └── Profile.js        # User settings
-└── utils/                # Utility functions
-    ├── auth.js           # Authentication logic
-    ├── storage.js        # Data management
-    └── aiAgent.js        # AI integration
+React + Vite
+    ↓
+Supabase Auth
+    ↓
+Supabase PostgreSQL + Row Level Security
+    ↓
+Supabase private Storage
+    ↓
+Server-side AI endpoints
 ```
 
-## Getting Started
-1. Visit the application URL
-2. Sign up with email and basic information
-3. Start uploading health documents
-4. Begin tracking menstrual cycles
-5. Chat with AI assistant for health insights
+The original Trickle implementation is preserved under `legacy/trickle/` for reference during the migration.
 
-## Future Enhancements
-- Multi-user family accounts
-- Healthcare provider integration
-- Wearable device connectivity
-- Advanced AI health scoring
-- Telemedicine integration
+## Features
+
+- Email/password authentication
+- Personal health profile
+- Health document upload and categorisation
+- Menstrual cycle tracking
+- Prescription and reminder data
+- AI-assisted health information
+- Responsive dashboard and navigation
+
+## Technology
+
+- React 18
+- Vite
+- Tailwind CSS
+- Supabase Auth
+- Supabase PostgreSQL
+- Supabase Storage
+- Server-side AI API boundary
+
+## Local setup
+
+1. Install Node.js.
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Copy `.env.example` to `.env.local`.
+4. Add the Supabase project URL and anon key.
+5. Apply the SQL migrations in `supabase/migrations/` to your Supabase project.
+6. Start the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+## Environment variables
+
+```text
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+AI_API_KEY=
+```
+
+Only public Supabase browser settings use the `VITE_` prefix. AI provider credentials must remain server-side.
+
+## Security notes
+
+- Application tables use Row Level Security so users can access only their own records.
+- Medical files are designed for a private Supabase Storage bucket with user-scoped paths.
+- AI credentials are not intended to be exposed to the browser.
+- MedVault should not be described as HIPAA-compliant or end-to-end encrypted until those claims are independently implemented and verified.
+
+## Project structure
+
+```
+src/
+├── components/          # React UI components
+├── services/            # Auth, database/storage, and AI boundaries
+├── lib/                 # Supabase client
+├── legacy-bridge.js     # Temporary compatibility layer for old component calls
+├── App.jsx
+├── main.jsx
+└── styles.css
+
+supabase/
+└── migrations/          # Database, RLS, and storage policies
+
+legacy/
+└── trickle/             # Archived original implementation
+```
+
+## Migration status
+
+- [x] Vite application foundation
+- [x] React components moved into `src/`
+- [x] Trickle implementation archived
+- [x] Supabase client boundary
+- [x] Auth service boundary
+- [x] Database schema and RLS
+- [x] Private storage policies
+- [x] Compatibility bridge
+- [ ] Connect and test a real Supabase project
+- [ ] Finish server-side AI endpoints
+- [ ] Remove remaining Trickle-era component calls
+- [ ] Run production build and end-to-end testing
+- [ ] Deploy independently
 
 ---
-*Last updated: October 2025*
+Last updated: September 2026
