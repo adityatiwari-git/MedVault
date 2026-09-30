@@ -1,7 +1,5 @@
-import { supabase } from '../lib/supabase.js';
-
-const BUCKET = 'medical-documents';
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
 const ALLOWED_FILE_TYPES = [
   'image/jpeg',
   'image/png',
@@ -12,50 +10,112 @@ const ALLOWED_FILE_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ];
 
-function mapDocument(row, signedUrl = '') {
-  return {
-    objectId: row.id,
-    objectData: {
-      FileName: row.file_name,
-      FileURL: signedUrl,
-      StoragePath: row.storage_path,
-      Category: row.category,
-      DateUploaded: row.uploaded_at,
-      Notes: row.notes,
-      HasFile: row.has_file,
-      FileType: row.file_type,
-      FileSize: row.file_size,
-    },
-  };
+const DB_NAME = 'medvault-files';
+const DB_VERSION = 1;
+const FILE_STORE = 'files';
+
+function listKey(type, userId) {
+  return 'medvault_' + type + '_' + userId;
 }
 
-function mapPrescription(row) {
-  return {
-    objectId: row.id,
-    objectData: {
-      MedicineName: row.medicine_name,
-      Dosage: row.dosage,
-      Frequency: row.frequency,
-      ReminderEnabled: row.reminder_enabled,
-      StartDate: row.start_date,
-      EndDate: row.end_date,
-      Notes: row.notes,
-    },
-  };
+function readList(type, userId) {
+  try {
+    return JSON.parse(localStorage.getItem(listKey(type, userId)) || '[]');
+  } catch {
+    return [];
+  }
 }
 
-function mapCycle(row) {
-  return {
-    objectId: row.id,
-    objectData: {
-      PeriodStartDate: row.period_start_date,
-      PeriodEndDate: row.period_end_date,
-      Notes: row.notes,
-      AIPrediction: row.ai_prediction,
-      FlowIntensity: row.flow_intensity,
-      Symptoms: row.symptoms ? row.symptoms.split(', ').filter(Boolean) : [],
-    },
-  };
+function writeList(type, userId, value) {
+  localStorage.setItem(listKey(type, userId), JSON.stringify(value));
+}
+
+function createId() {
+  return crypto.randomUUID();
+}
+
+function openFileDatabase() {
+  return new Promise((resolve, reject) => {
+    if (!('indexedDB' in window)) {
+      reject(new Error('This browser does not support local file storage.'));
+      return;
+    }
+
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onupgradeneeded = () => {
+      const database = request.result;
+      if (!database.objectStoreNames.contains(FILE_STORE)) {
+        database.createObjectStore(FILE_STORE, { keyPath: 'id' });
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error('Unable to open local file storage.'));
+  });
+}
+
+async function saveFile(id, file) {
+  const database = await openFileDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(FILE_STORE, 'readwrite');
+    transaction.objectStore(FILE_STORE).put({
+      id,
+      blob: file,
+      name: file.name,
+      type: file.type,
+    });
+
+    transaction.oncomplete = () => {
+      database.close();
+      resolve();
+    };
+    transaction.onerror = () => {
+      database.close();
+      reject(transaction.error || new Error('Unable to save the file locally.'));
+    };
+  });
+}
+
+async function getFile(id) {
+  if (!id) return null;
+
+  const database = await openFileDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(FILE_STORE, 'readonly');
+    const request = transaction.objectStore(FILE_STORE).get(id);
+
+    request.onsuccess = () => {
+      database.close();
+      resolve(request.result || null);
+    };
+    request.onerror = () => {
+      database.close();
+      reject(request.error || new Error('Unable to read the local file.'));
+    };
+  });
+}
+
+async function removeFile(id) {
+  if (!id) return;
+
+  const database = await openFileDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(FILE_STORE, 'readwrite');
+    transaction.objectStore(FILE_STORE).delete(id);
+
+    transaction.oncomplete = () => {
+      database.close();
+      resolve();
+    };
+    transaction.onerror = () => {
+      database.close();
+      reject(transaction.error || new Error('Unable to remove the local file.'));
+    };
+  });
 }
 
 function validateFile(file) {
@@ -70,290 +130,266 @@ function validateFile(file) {
   }
 }
 
-function buildStoragePath(userId, file) {
-  return userId + '/' + crypto.randomUUID() + '-' + file.name;
+async function mapDocument(row) {
+  let fileUrl = '';
+
+  if (row.storageKey) {
+    const storedFile = await getFile(row.storageKey);
+    if (storedFile?.blob) {
+      fileUrl = URL.createObjectURL(storedFile.blob);
+    }
+  }
+
+  return {
+    objectId: row.id,
+    objectData: {
+      FileName: row.fileName,
+      FileURL: fileUrl,
+      StoragePath: row.storageKey,
+      Category: row.category,
+      DateUploaded: row.uploadedAt,
+      Notes: row.notes,
+      HasFile: row.hasFile,
+      FileType: row.fileType,
+      FileSize: row.fileSize,
+    },
+  };
 }
 
-async function getSignedUrl(path) {
-  if (!path) return '';
+function mapPrescription(row) {
+  return {
+    objectId: row.id,
+    objectData: {
+      MedicineName: row.medicineName,
+      Dosage: row.dosage,
+      Frequency: row.frequency,
+      ReminderEnabled: row.reminderEnabled,
+      StartDate: row.startDate,
+      EndDate: row.endDate,
+      Notes: row.notes,
+    },
+  };
+}
 
-  const { data, error } = await supabase.storage
-    .from(BUCKET)
-    .createSignedUrl(path, 3600);
-
-  if (error) throw error;
-  return data?.signedUrl || '';
+function mapCycle(row) {
+  return {
+    objectId: row.id,
+    objectData: {
+      PeriodStartDate: row.periodStartDate,
+      PeriodEndDate: row.periodEndDate,
+      Notes: row.notes,
+      AIPrediction: row.aiPrediction || null,
+      FlowIntensity: row.flowIntensity,
+      Symptoms: Array.isArray(row.symptoms) ? row.symptoms : [],
+    },
+  };
 }
 
 export async function createUserDocument(userId, documentData) {
   validateFile(documentData.file);
 
-  let storagePath = '';
+  const id = createId();
+  const storageKey = documentData.file ? userId + '/' + id : '';
+  const uploadedAt = new Date().toISOString();
 
   if (documentData.file) {
-    storagePath = buildStoragePath(userId, documentData.file);
-
-    const { error } = await supabase.storage
-      .from(BUCKET)
-      .upload(storagePath, documentData.file, {
-        contentType: documentData.file.type,
-        upsert: false,
-      });
-
-    if (error) throw error;
+    await saveFile(storageKey, documentData.file);
   }
 
-  const { data, error } = await supabase
-    .from('documents')
-    .insert({
-      user_id: userId,
-      file_name: documentData.fileName.trim(),
-      storage_path: storagePath || null,
-      category: documentData.category,
-      notes: documentData.notes?.trim() || null,
-      has_file: Boolean(documentData.file),
-      file_type: documentData.file?.type || null,
-      file_size: documentData.file?.size || null,
-    })
-    .select()
-    .single();
+  const documents = readList('documents', userId);
+  documents.push({
+    id,
+    fileName: documentData.fileName.trim(),
+    storageKey: storageKey || null,
+    category: documentData.category,
+    uploadedAt,
+    notes: documentData.notes?.trim() || '',
+    hasFile: Boolean(documentData.file),
+    fileType: documentData.file?.type || '',
+    fileSize: documentData.file?.size || 0,
+  });
 
-  if (error) {
-    if (storagePath) await supabase.storage.from(BUCKET).remove([storagePath]);
+  try {
+    writeList('documents', userId, documents);
+  } catch (error) {
+    if (storageKey) await removeFile(storageKey);
     throw error;
   }
 
-  return mapDocument(data, await getSignedUrl(storagePath));
+  return mapDocument(documents[documents.length - 1]);
 }
 
 export async function updateUserDocument(userId, documentId, documentData) {
   validateFile(documentData.file);
 
-  const { data: existing, error: existingError } = await supabase
-    .from('documents')
-    .select('*')
-    .eq('id', documentId)
-    .eq('user_id', userId)
-    .single();
+  const documents = readList('documents', userId);
+  const index = documents.findIndex((item) => item.id === documentId);
 
-  if (existingError) throw existingError;
+  if (index === -1) throw new Error('The health record could not be found.');
 
-  let storagePath = existing.storage_path;
-  let fileType = existing.file_type;
-  let fileSize = existing.file_size;
-  let hasFile = existing.has_file;
-  let newStoragePath = '';
+  const existing = documents[index];
+  let nextStorageKey = existing.storageKey;
 
   if (documentData.file) {
-    newStoragePath = buildStoragePath(userId, documentData.file);
+    nextStorageKey = userId + '/' + documentId + '-' + createId();
+    await saveFile(nextStorageKey, documentData.file);
 
-    const { error } = await supabase.storage
-      .from(BUCKET)
-      .upload(newStoragePath, documentData.file, {
-        contentType: documentData.file.type,
-        upsert: false,
-      });
-
-    if (error) throw error;
-
-    storagePath = newStoragePath;
-    fileType = documentData.file.type;
-    fileSize = documentData.file.size;
-    hasFile = true;
+    if (existing.storageKey) {
+      await removeFile(existing.storageKey);
+    }
   }
 
-  const { data, error } = await supabase
-    .from('documents')
-    .update({
-      file_name: documentData.fileName.trim(),
-      category: documentData.category,
-      notes: documentData.notes?.trim() || null,
-      storage_path: storagePath || null,
-      file_type: fileType,
-      file_size: fileSize,
-      has_file: hasFile,
-    })
-    .eq('id', documentId)
-    .eq('user_id', userId)
-    .select()
-    .single();
+  documents[index] = {
+    ...existing,
+    fileName: documentData.fileName.trim(),
+    category: documentData.category,
+    notes: documentData.notes?.trim() || '',
+    storageKey: nextStorageKey || null,
+    hasFile: Boolean(nextStorageKey),
+    fileType: documentData.file ? documentData.file.type : existing.fileType,
+    fileSize: documentData.file ? documentData.file.size : existing.fileSize,
+  };
 
-  if (error) {
-    if (newStoragePath) await supabase.storage.from(BUCKET).remove([newStoragePath]);
-    throw error;
-  }
-
-  if (newStoragePath && existing.storage_path) {
-    const { error: cleanupError } = await supabase.storage.from(BUCKET).remove([existing.storage_path]);
-    if (cleanupError) console.warn('Old file cleanup failed:', cleanupError.message);
-  }
-
-  return mapDocument(data, await getSignedUrl(storagePath));
+  writeList('documents', userId, documents);
+  return mapDocument(documents[index]);
 }
 
 export async function deleteUserDocument(userId, documentId) {
-  const { data: existing, error: fetchError } = await supabase
-    .from('documents')
-    .select('storage_path')
-    .eq('id', documentId)
-    .eq('user_id', userId)
-    .single();
+  const documents = readList('documents', userId);
+  const existing = documents.find((item) => item.id === documentId);
 
-  if (fetchError) throw fetchError;
+  if (!existing) throw new Error('The health record could not be found.');
 
-  const { error } = await supabase
-    .from('documents')
-    .delete()
-    .eq('id', documentId)
-    .eq('user_id', userId);
+  const remaining = documents.filter((item) => item.id !== documentId);
+  writeList('documents', userId, remaining);
 
-  if (error) throw error;
-
-  if (existing.storage_path) {
-    const { error: cleanupError } = await supabase.storage.from(BUCKET).remove([existing.storage_path]);
-    if (cleanupError) console.warn('File cleanup failed:', cleanupError.message);
+  if (existing.storageKey) {
+    await removeFile(existing.storageKey);
   }
 }
 
 export async function createUserPrescription(userId, prescriptionData) {
-  const { data, error } = await supabase
-    .from('prescriptions')
-    .insert({
-      user_id: userId,
-      medicine_name: prescriptionData.medicineName.trim(),
-      dosage: prescriptionData.dosage?.trim() || null,
-      frequency: prescriptionData.frequency?.trim() || null,
-      reminder_enabled: Boolean(prescriptionData.reminderEnabled),
-      start_date: prescriptionData.startDate || null,
-      end_date: prescriptionData.endDate || null,
-      notes: prescriptionData.notes?.trim() || null,
-    })
-    .select()
-    .single();
+  const record = {
+    id: createId(),
+    medicineName: prescriptionData.medicineName.trim(),
+    dosage: prescriptionData.dosage?.trim() || '',
+    frequency: prescriptionData.frequency?.trim() || '',
+    reminderEnabled: Boolean(prescriptionData.reminderEnabled),
+    startDate: prescriptionData.startDate || '',
+    endDate: prescriptionData.endDate || '',
+    notes: prescriptionData.notes?.trim() || '',
+    createdAt: new Date().toISOString(),
+  };
 
-  if (error) throw error;
-  return mapPrescription(data);
+  const prescriptions = readList('prescriptions', userId);
+  prescriptions.unshift(record);
+  writeList('prescriptions', userId, prescriptions);
+
+  return mapPrescription(record);
 }
 
 export async function getUserDocuments(userId, limit = 50) {
-  const { data, error } = await supabase
-    .from('documents')
-    .select('*')
-    .eq('user_id', userId)
-    .order('uploaded_at', { ascending: false })
-    .limit(limit);
+  const documents = readList('documents', userId)
+    .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))
+    .slice(0, limit);
 
-  if (error) throw error;
-
-  return Promise.all(
-    (data || []).map(async (row) => mapDocument(row, await getSignedUrl(row.storage_path))),
-  );
+  return Promise.all(documents.map(mapDocument));
 }
 
 export async function getUserPrescriptions(userId, limit = 50) {
-  const { data, error } = await supabase
-    .from('prescriptions')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  if (error) throw error;
-  return (data || []).map(mapPrescription);
+  return readList('prescriptions', userId)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, limit)
+    .map(mapPrescription);
 }
 
 export async function getUserCycles(userId, limit = 50) {
-  const { data, error } = await supabase
-    .from('cycle_entries')
-    .select('*')
-    .eq('user_id', userId)
-    .order('period_start_date', { ascending: false })
-    .limit(limit);
-
-  if (error) throw error;
-  return (data || []).map(mapCycle);
+  return readList('cycles', userId)
+    .sort((a, b) => new Date(b.periodStartDate) - new Date(a.periodStartDate))
+    .slice(0, limit)
+    .map(mapCycle);
 }
 
 export async function updateUserPrescription(userId, prescriptionId, prescriptionData) {
-  const { data, error } = await supabase
-    .from('prescriptions')
-    .update({
-      medicine_name: prescriptionData.medicineName.trim(),
-      dosage: prescriptionData.dosage?.trim() || null,
-      frequency: prescriptionData.frequency?.trim() || null,
-      reminder_enabled: Boolean(prescriptionData.reminderEnabled),
-      start_date: prescriptionData.startDate || null,
-      end_date: prescriptionData.endDate || null,
-      notes: prescriptionData.notes?.trim() || null,
-    })
-    .eq('id', prescriptionId)
-    .eq('user_id', userId)
-    .select()
-    .single();
+  const prescriptions = readList('prescriptions', userId);
+  const index = prescriptions.findIndex((item) => item.id === prescriptionId);
 
-  if (error) throw error;
-  return mapPrescription(data);
+  if (index === -1) throw new Error('The prescription could not be found.');
+
+  prescriptions[index] = {
+    ...prescriptions[index],
+    medicineName: prescriptionData.medicineName.trim(),
+    dosage: prescriptionData.dosage?.trim() || '',
+    frequency: prescriptionData.frequency?.trim() || '',
+    reminderEnabled: Boolean(prescriptionData.reminderEnabled),
+    startDate: prescriptionData.startDate || '',
+    endDate: prescriptionData.endDate || '',
+    notes: prescriptionData.notes?.trim() || '',
+    updatedAt: new Date().toISOString(),
+  };
+
+  writeList('prescriptions', userId, prescriptions);
+  return mapPrescription(prescriptions[index]);
 }
 
 export async function deleteUserPrescription(userId, prescriptionId) {
-  const { error } = await supabase
-    .from('prescriptions')
-    .delete()
-    .eq('id', prescriptionId)
-    .eq('user_id', userId);
+  const prescriptions = readList('prescriptions', userId);
+  const remaining = prescriptions.filter((item) => item.id !== prescriptionId);
 
-  if (error) throw error;
+  if (remaining.length === prescriptions.length) {
+    throw new Error('The prescription could not be found.');
+  }
+
+  writeList('prescriptions', userId, remaining);
 }
 
 export async function createCycleEntry(userId, cycleData) {
-  const { data, error } = await supabase
-    .from('cycle_entries')
-    .insert({
-      user_id: userId,
-      period_start_date: cycleData.periodStartDate,
-      period_end_date: cycleData.periodEndDate || null,
-      notes: cycleData.notes?.trim() || null,
-      ai_prediction: cycleData.aiPrediction || null,
-      flow_intensity: cycleData.flowIntensity || null,
-      symptoms: Array.isArray(cycleData.symptoms)
-        ? cycleData.symptoms.join(', ')
-        : cycleData.symptoms || null,
-    })
-    .select()
-    .single();
+  const record = {
+    id: createId(),
+    periodStartDate: cycleData.periodStartDate,
+    periodEndDate: cycleData.periodEndDate || '',
+    notes: cycleData.notes?.trim() || '',
+    aiPrediction: cycleData.aiPrediction || null,
+    flowIntensity: cycleData.flowIntensity || '',
+    symptoms: Array.isArray(cycleData.symptoms) ? cycleData.symptoms : [],
+    createdAt: new Date().toISOString(),
+  };
 
-  if (error) throw error;
-  return mapCycle(data);
+  const cycles = readList('cycles', userId);
+  cycles.push(record);
+  writeList('cycles', userId, cycles);
+
+  return mapCycle(record);
 }
 
 export async function updateCycleEntry(userId, cycleId, cycleData) {
-  const { data, error } = await supabase
-    .from('cycle_entries')
-    .update({
-      period_start_date: cycleData.periodStartDate,
-      period_end_date: cycleData.periodEndDate || null,
-      notes: cycleData.notes?.trim() || null,
-      ai_prediction: cycleData.aiPrediction || null,
-      flow_intensity: cycleData.flowIntensity || null,
-      symptoms: Array.isArray(cycleData.symptoms)
-        ? cycleData.symptoms.join(', ')
-        : cycleData.symptoms || null,
-    })
-    .eq('id', cycleId)
-    .eq('user_id', userId)
-    .select()
-    .single();
+  const cycles = readList('cycles', userId);
+  const index = cycles.findIndex((item) => item.id === cycleId);
 
-  if (error) throw error;
-  return mapCycle(data);
+  if (index === -1) throw new Error('The cycle entry could not be found.');
+
+  cycles[index] = {
+    ...cycles[index],
+    periodStartDate: cycleData.periodStartDate,
+    periodEndDate: cycleData.periodEndDate || '',
+    notes: cycleData.notes?.trim() || '',
+    aiPrediction: cycleData.aiPrediction || null,
+    flowIntensity: cycleData.flowIntensity || '',
+    symptoms: Array.isArray(cycleData.symptoms) ? cycleData.symptoms : [],
+    updatedAt: new Date().toISOString(),
+  };
+
+  writeList('cycles', userId, cycles);
+  return mapCycle(cycles[index]);
 }
 
 export async function deleteCycleEntry(userId, cycleId) {
-  const { error } = await supabase
-    .from('cycle_entries')
-    .delete()
-    .eq('id', cycleId)
-    .eq('user_id', userId);
+  const cycles = readList('cycles', userId);
+  const remaining = cycles.filter((item) => item.id !== cycleId);
 
-  if (error) throw error;
+  if (remaining.length === cycles.length) {
+    throw new Error('The cycle entry could not be found.');
+  }
+
+  writeList('cycles', userId, remaining);
 }
