@@ -23,10 +23,10 @@ const prompts = {
   }),
 };
 
-function getProviderConfig() {
-  const apiKey = process.env.AI_API_KEY;
-  const apiUrl = process.env.AI_API_URL || "https://api.openai.com/v1/chat/completions";
-  const model = process.env.AI_MODEL || "gpt-4o-mini";
+async function getProviderConfig() {
+  const apiKey = Netlify.env.get("AI_API_KEY");
+  const apiUrl = Netlify.env.get("AI_API_URL") || "https://api.openai.com/v1/chat/completions";
+  const model = Netlify.env.get("AI_MODEL") || "gpt-4o-mini";
 
   if (!apiKey) {
     throw new Error("AI service is not configured.");
@@ -36,7 +36,7 @@ function getProviderConfig() {
 }
 
 async function callModel(system, user) {
-  const { apiKey, apiUrl, model } = getProviderConfig();
+  const { apiKey, apiUrl, model } = await getProviderConfig();
 
   const response = await fetch(apiUrl, {
     method: "POST",
@@ -68,56 +68,39 @@ async function callModel(system, user) {
   return content;
 }
 
-exports.handler = async (event) => {
-  if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Method not allowed." }),
-    };
+export default async (req: Request) => {
+  if (req.method !== "POST") {
+    return Response.json({ error: "Method not allowed." }, { status: 405 });
   }
 
   try {
-    const body = event.body ? JSON.parse(event.body) : {};
+    const body = await req.json();
 
     if (JSON.stringify(body).length > MAX_BODY_SIZE) {
-      return {
-        statusCode: 413,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Request is too large." }),
-      };
+      return Response.json({ error: "Request is too large." }, { status: 413 });
     }
 
-    const action =
-      event.pathParameters?.splat ||
-      event.queryStringParameters?.action ||
-      "";
-
+    const pathname = new URL(req.url).pathname;
+    const action = pathname.split("/").filter(Boolean).pop() || "";
     const builder = prompts[action];
 
     if (!builder) {
-      return {
-        statusCode: 404,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Unknown AI endpoint." }),
-      };
+      return Response.json({ error: "Unknown AI endpoint." }, { status: 404 });
     }
 
     const { system, user } = builder(body);
     const response = await callModel(system, user);
 
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ response }),
-    };
+    return Response.json({ response });
   } catch (error) {
-    console.error("AI endpoint error:", error.message);
-
-    return {
-      statusCode: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "AI service is temporarily unavailable." }),
-    };
+    console.error("AI endpoint error:", error instanceof Error ? error.message : error);
+    return Response.json(
+      { error: "AI service is temporarily unavailable." },
+      { status: 500 },
+    );
   }
+};
+
+export const config = {
+  path: "/api/ai/*",
 };
