@@ -185,7 +185,7 @@ function Dashboard({ user }) {
                 <span>Medication Reminders</span>
               </h3>
               <div className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                Active now
+                Enabled prescriptions
               </div>
             </div>
             {stats.upcomingReminders.length > 0 ? (
