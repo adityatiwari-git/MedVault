@@ -198,3 +198,48 @@ export async function getUserCycles(userId, limit = 50) {
   if (error) throw error;
   return (data || []).map(mapCycle);
 }
+
+export async function updateUserPrescription(userId, prescriptionId, prescriptionData) {
+  const { data, error } = await supabase.from('prescriptions').update({
+    medicine_name: prescriptionData.medicineName,
+    dosage: prescriptionData.dosage,
+    frequency: prescriptionData.frequency,
+    reminder_enabled: Boolean(prescriptionData.reminderEnabled),
+    start_date: prescriptionData.startDate || null,
+    end_date: prescriptionData.endDate || null,
+    notes: prescriptionData.notes || null,
+  }).eq('id', prescriptionId).eq('user_id', userId).select().single();
+
+  if (error) throw error;
+  return mapPrescription(data);
+}
+
+export async function deleteUserPrescription(userId, prescriptionId) {
+  const { error } = await supabase.from('prescriptions')
+    .delete().eq('id', prescriptionId).eq('user_id', userId);
+
+  if (error) throw error;
+}
+
+export async function updateCycleEntry(userId, cycleId, cycleData) {
+  const { data, error } = await supabase.from('cycle_entries').update({
+    period_start_date: cycleData.periodStartDate,
+    period_end_date: cycleData.periodEndDate || null,
+    notes: cycleData.notes || null,
+    ai_prediction: cycleData.aiPrediction || null,
+    flow_intensity: cycleData.flowIntensity || null,
+    symptoms: Array.isArray(cycleData.symptoms)
+      ? cycleData.symptoms.join(', ')
+      : cycleData.symptoms || null,
+  }).eq('id', cycleId).eq('user_id', userId).select().single();
+
+  if (error) throw error;
+  return mapCycle(data);
+}
+
+export async function deleteCycleEntry(userId, cycleId) {
+  const { error } = await supabase.from('cycle_entries')
+    .delete().eq('id', cycleId).eq('user_id', userId);
+
+  if (error) throw error;
+}
