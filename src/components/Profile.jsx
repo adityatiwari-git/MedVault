@@ -2,7 +2,7 @@ import React from 'react';
 import { getUserDocuments, getUserCycles, getUserPrescriptions } from '../services/storage.js';
 import { updateUserProfile } from '../services/auth.js';
 
-function Profile({ user }) {
+function Profile({ user, onUserUpdated }) {
   try {
     const [isEditing, setIsEditing] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
@@ -52,8 +52,16 @@ function Profile({ user }) {
       try {
         await updateUserProfile(user.objectId, profileData);
         
-        const updatedUser = {...user, objectData: {...user.objectData, ...profileData, Age: parseInt(profileData.age)}};
-        
+        onUserUpdated({
+          ...user,
+          objectData: {
+            ...user.objectData,
+            Name: profileData.name,
+            Age: parseInt(profileData.age, 10),
+            Gender: profileData.gender,
+          },
+        });
+
         setIsEditing(false);
         setSuccessMessage('Profile updated successfully! 🎉');
         setTimeout(() => setSuccessMessage(''), 3000);
@@ -117,12 +125,13 @@ function Profile({ user }) {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                      <p className="text-xs text-gray-500 mb-2">Managed by your account login</p>
                       <input
                         type="email"
-                        className="input-field"
+                        className="input-field bg-gray-50"
                         value={profileData.email}
-                        onChange={(e) => setProfileData({...profileData, email: e.target.value})}
-                        required
+                        readOnly
+                        aria-readonly="true"
                       />
                     </div>
                   </div>
