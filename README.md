@@ -114,5 +114,8 @@ legacy/
 - [ ] Configure deployment secrets and AI provider key
 - [ ] Complete live browser smoke test after deployment
 
+### Deployment note
+The Vercel integration is connected to the GitHub repository, but the current connected Vercel API does not expose the project/deployment resource for inspection. No live production URL is claimed until the deployment can be verified.
+
 ---
 Last updated: September 30, 2026
