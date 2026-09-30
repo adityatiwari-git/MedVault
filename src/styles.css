@@ -136,3 +136,47 @@ body {
 .animate-pulse-soft {
   animation: pulse-soft 2s ease-in-out infinite;
 }
+
+
+/* Local icon fallback: keeps the interface independent of Trickle/CDN icon assets. */
+.icon-activity,.icon-alert-circle,.icon-arrow-right,.icon-bell,.icon-calendar,.icon-calendar-heart,.icon-chart-bar,.icon-check,.icon-check-circle,.icon-chevron-right,.icon-clock,.icon-container,.icon-download,.icon-droplet,.icon-edit,.icon-eye,.icon-file,.icon-file-text,.icon-folder,.icon-folder-open,.icon-folder-plus,.icon-heart,.icon-image,.icon-info,.icon-lightbulb,.icon-lock,.icon-log-out,.icon-mail,.icon-menu,.icon-pill,.icon-plus,.icon-refresh-cw,.icon-send,.icon-shield-check,.icon-sparkles,.icon-star,.icon-trash-2,.icon-upload,.icon-user,.icon-x { display: inline-flex; align-items: center; justify-content: center; font-style: normal; line-height: 1; }
+.icon-activity::before { content: "◔"; }
+.icon-alert-circle::before { content: "!"; }
+.icon-arrow-right::before { content: "→"; }
+.icon-bell::before { content: "♧"; }
+.icon-calendar::before { content: "□"; }
+.icon-calendar-heart::before { content: "♡"; }
+.icon-chart-bar::before { content: "▥"; }
+.icon-check::before { content: "✓"; }
+.icon-check-circle::before { content: "✓"; }
+.icon-chevron-right::before { content: "›"; }
+.icon-clock::before { content: "◷"; }
+.icon-container::before { content: "□"; }
+.icon-download::before { content: "↓"; }
+.icon-droplet::before { content: "♢"; }
+.icon-edit::before { content: "✎"; }
+.icon-eye::before { content: "◉"; }
+.icon-file::before { content: "▱"; }
+.icon-file-text::before { content: "▤"; }
+.icon-folder::before { content: "▰"; }
+.icon-folder-open::before { content: "▱"; }
+.icon-folder-plus::before { content: "⊞"; }
+.icon-heart::before { content: "♥"; }
+.icon-image::before { content: "▧"; }
+.icon-info::before { content: "i"; }
+.icon-lightbulb::before { content: "◉"; }
+.icon-lock::before { content: "▣"; }
+.icon-log-out::before { content: "↪"; }
+.icon-mail::before { content: "✉"; }
+.icon-menu::before { content: "☰"; }
+.icon-pill::before { content: "▰"; }
+.icon-plus::before { content: "+"; }
+.icon-refresh-cw::before { content: "↻"; }
+.icon-send::before { content: "➤"; }
+.icon-shield-check::before { content: "✓"; }
+.icon-sparkles::before { content: "✦"; }
+.icon-star::before { content: "★"; }
+.icon-trash-2::before { content: "⌫"; }
+.icon-upload::before { content: "↑"; }
+.icon-user::before { content: "●"; }
+.icon-x::before { content: "×"; }
