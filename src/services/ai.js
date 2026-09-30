@@ -1,6 +1,8 @@
 // Server-side AI service boundary.
 // Provider credentials must never be exposed to the browser.
 
+const MAX_BODY_SIZE = 12000;
+
 async function requestAI(endpoint, payload) {
   const response = await fetch(endpoint, {
     method: 'POST',
@@ -8,11 +10,15 @@ async function requestAI(endpoint, payload) {
     body: JSON.stringify(payload),
   });
 
+  let data = {};
+  try {
+    data = await response.json();
+  } catch {}
+
   if (!response.ok) {
-    throw new Error('AI service request failed.');
+    throw new Error(data.error || 'AI service request failed.');
   }
 
-  const data = await response.json();
   return data.response ?? '';
 }
 
