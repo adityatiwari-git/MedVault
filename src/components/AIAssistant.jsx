@@ -1,4 +1,6 @@
 import React from 'react';
+import { getUserDocuments, getUserPrescriptions, getUserCycles } from '../services/storage.js';
+import { getEnhancedHealthAssistance } from '../services/ai.js';
 
 function AIAssistant({ user }) {
   try {
@@ -9,33 +11,6 @@ function AIAssistant({ user }) {
     const [healthProfile, setHealthProfile] = React.useState({});
 
     React.useEffect(() => {
-      // Add web search capability to window
-      window.searchWeb = async (query, searchImage = false, dateRange = null) => {
-        try {
-          const response = await fetch('https://proxy-api.trickle-app.host/?url=https://api.search.brave.com/res/v1/web/search', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Subscription-Token': 'BSAQzJpRZKNIFJ21eG2j9aX_V9Cb0d4'
-            },
-            body: JSON.stringify({
-              q: query,
-              search_lang: 'en',
-              ui_lang: 'en',
-              count: 5,
-              offset: 0,
-              safesearch: 'moderate',
-              freshness: dateRange || 'py'
-            })
-          });
-          const data = await response.json();
-          return data.web?.results?.map(r => `${r.title}: ${r.description}`).join('\n') || 'No results found';
-        } catch (error) {
-          console.error('Search error:', error);
-          return 'Search unavailable';
-        }
-      };
-
       // Load user health profile
       loadHealthProfile();
 
@@ -61,7 +36,7 @@ Hi ${user.objectData.Name}! I'm your personal health assistant.
 • General health & wellness
 • Medication information  
 • Nutrition & fitness advice
-• Latest 2025 health research
+• General health information
 
 **How to get the best answers:**
 • Ask specific questions
@@ -157,7 +132,7 @@ Ask me anything to get started!`,
 
         let aiResponse;
         try {
-          aiResponse = await getEnhancedHealthAssistanceWithSearch(userMessage.content, healthContext);
+          aiResponse = await getEnhancedHealthAssistance(userMessage.content, healthContext);
         } catch (aiError) {
           console.error('AI response error:', aiError);
           aiResponse = 'I\'m having trouble connecting right now. Please try asking again, or consult your healthcare provider for urgent concerns. 🌸';
@@ -203,7 +178,7 @@ I'm your personal health assistant. I remember your health profile and previous 
 **What I can help with:**
 • Women's health questions
 • Cycle & fertility info  
-• Latest medical research
+• General medical information
 • Wellness advice
 
 What would you like to know?`,
