@@ -60,3 +60,15 @@ export async function logout() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }
+
+export async function updateUserProfile(userId, profileData) {
+  const { data, error } = await supabase.from('profiles').update({
+    name: profileData.name,
+    age: Number(profileData.age),
+    gender: profileData.gender,
+    updated_at: new Date().toISOString(),
+  }).eq('id', userId).select('name, age, gender').single();
+
+  if (error) throw error;
+  return data;
+}
