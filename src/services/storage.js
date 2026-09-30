@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase.js';
 
 const BUCKET = 'medical-documents';
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 function mapDocument(row, signedUrl = '') {
   return {
@@ -51,15 +52,32 @@ function mapCycle(row) {
 
 async function getSignedUrl(path) {
   if (!path) return '';
-  const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600);
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600);
+  if (error) throw error;
   return data?.signedUrl || '';
 }
 
+function validateFile(file) {
+  if (!file) return;
+  if (file.size > MAX_FILE_SIZE) throw new Error('File size must be less than 10MB.');
+  const allowedTypes = [
+    'image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'text/plain',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  ];
+  if (!allowedTypes.includes(file.type)) throw new Error('Unsupported file type.');
+}
+
+function buildStoragePath(userId, file) {
+  return userId + '/' + crypto.randomUUID() + '-' + file.name;
+}
+
 export async function createUserDocument(userId, documentData) {
+  validateFile(documentData.file);
   let storagePath = '';
 
   if (documentData.file) {
-    storagePath = userId + '/' + crypto.randomUUID() + '-' + documentData.file.name;
+    storagePath = buildStoragePath(userId, documentData.file);
     const { error } = await supabase.storage.from(BUCKET).upload(storagePath, documentData.file, {
       contentType: documentData.file.type,
       upsert: false,
@@ -87,6 +105,8 @@ export async function createUserDocument(userId, documentData) {
 }
 
 export async function updateUserDocument(userId, documentId, documentData) {
+  validateFile(documentData.file);
+
   const { data: existing, error: existingError } = await supabase
     .from('documents').select('*').eq('id', documentId).eq('user_id', userId).single();
 
@@ -96,17 +116,17 @@ export async function updateUserDocument(userId, documentId, documentData) {
   let fileType = existing.file_type;
   let fileSize = existing.file_size;
   let hasFile = existing.has_file;
+  let newStoragePath = '';
 
   if (documentData.file) {
-    const newPath = userId + '/' + crypto.randomUUID() + '-' + documentData.file.name;
-    const { error } = await supabase.storage.from(BUCKET).upload(newPath, documentData.file, {
+    newStoragePath = buildStoragePath(userId, documentData.file);
+    const { error } = await supabase.storage.from(BUCKET).upload(newStoragePath, documentData.file, {
       contentType: documentData.file.type,
       upsert: false,
     });
     if (error) throw error;
 
-    if (storagePath) await supabase.storage.from(BUCKET).remove([storagePath]);
-    storagePath = newPath;
+    storagePath = newStoragePath;
     fileType = documentData.file.type;
     fileSize = documentData.file.size;
     hasFile = true;
@@ -122,7 +142,16 @@ export async function updateUserDocument(userId, documentId, documentData) {
     has_file: hasFile,
   }).eq('id', documentId).eq('user_id', userId).select().single();
 
-  if (error) throw error;
+  if (error) {
+    if (newStoragePath) await supabase.storage.from(BUCKET).remove([newStoragePath]);
+    throw error;
+  }
+
+  if (newStoragePath && existing.storage_path) {
+    const { error: removeError } = await supabase.storage.from(BUCKET).remove([existing.storage_path]);
+    if (removeError) console.warn('Old file cleanup failed:', removeError.message);
+  }
+
   return mapDocument(data, await getSignedUrl(storagePath));
 }
 
@@ -138,7 +167,8 @@ export async function deleteUserDocument(userId, documentId) {
   if (error) throw error;
 
   if (existing.storage_path) {
-    await supabase.storage.from(BUCKET).remove([existing.storage_path]);
+    const { error: removeError } = await supabase.storage.from(BUCKET).remove([existing.storage_path]);
+    if (removeError) console.warn('File cleanup failed:', removeError.message);
   }
 }
 
@@ -180,7 +210,7 @@ export async function getUserDocuments(userId, limit = 50) {
     .eq('user_id', userId).order('uploaded_at', { ascending: false }).limit(limit);
 
   if (error) throw error;
-  return Promise.all((data || []).map(async row => (
+  return Promise.all((data || []).map(async (row) => (
     mapDocument(row, await getSignedUrl(row.storage_path))
   )));
 }
