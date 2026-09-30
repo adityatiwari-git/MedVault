@@ -93,7 +93,7 @@ function App() {
           {activeTab === 'records' && <Records user={currentUser} />}
           {activeTab === 'cycle' && <CycleTracker user={currentUser} />}
           {activeTab === 'ai-assistant' && <AIAssistant user={currentUser} />}
-          {activeTab === 'profile' && <Profile user={currentUser} />}
+          {activeTab === 'profile' && <Profile user={currentUser} onUserUpdated={setCurrentUser} />}
         </div>
       </main>
     </div>

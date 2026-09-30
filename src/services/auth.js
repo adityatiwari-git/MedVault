@@ -39,9 +39,10 @@ export async function registerUser(userData) {
   if (error) throw error;
   if (!data.user) throw new Error('Account could not be created.');
 
-  return data.session
-    ? loadProfile(data.user)
-    : mapUser(data.user, userData);
+  return {
+    user: mapUser(data.user, userData),
+    hasSession: Boolean(data.session),
+  };
 }
 
 export async function loginUser(email, password) {

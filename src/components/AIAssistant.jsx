@@ -41,7 +41,7 @@ Hi ${user.objectData.Name}! I'm your personal health assistant.
 **How to get the best answers:**
 • Ask specific questions
 • Mention your age or health context when relevant
-• I can search the web for latest medical information
+• I can explain general health information using the information available to this app
 
 Ask me anything to get started!`,
           timestamp: new Date().toISOString()
@@ -221,7 +221,7 @@ What would you like to know?`,
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {[
                 "What's a normal menstrual cycle?",
-                "Latest 2025 women's health research"
+                What are common causes of period cramps?
               ].map((suggestion, index) => (
                 <button
                   key={index}
