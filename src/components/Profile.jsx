@@ -1,289 +1,444 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
+import {
+  Activity,
+  AlertCircle,
+  CalendarDays,
+  Check,
+  Edit3,
+  HeartPulse,
+  Mail,
+  Save,
+  ShieldCheck,
+  UserRound,
+  X,
+} from 'lucide-react';
 import { getUserDocuments, getUserCycles, getUserPrescriptions } from '../services/storage.js';
 import { updateUserProfile } from '../services/auth.js';
 
+const emptyForm = {
+  name: '',
+  email: '',
+  age: '',
+  gender: 'female',
+  heightCm: '',
+  weightKg: '',
+  bloodGroup: '',
+  allergies: '',
+  medicalConditions: '',
+  currentMedications: '',
+  emergencyContactName: '',
+  emergencyContactPhone: '',
+};
+
 function Profile({ user, onUserUpdated }) {
-  try {
-    const [isEditing, setIsEditing] = React.useState(false);
-    const [isSaving, setIsSaving] = React.useState(false);
-    const [profileData, setProfileData] = React.useState({
-      name: user.objectData.Name,
-      email: user.objectData.Email,
-      age: user.objectData.Age.toString(),
-      gender: user.objectData.Gender
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [stats, setStats] = useState({
+    documents: 0,
+    cycles: 0,
+    prescriptions: 0,
+  });
+  const [form, setForm] = useState(emptyForm);
+
+  useEffect(() => {
+    setForm({
+      name: user.objectData.Name || '',
+      email: user.objectData.Email || '',
+      age: user.objectData.Age || '',
+      gender: user.objectData.Gender || 'female',
+      heightCm: user.objectData.HeightCm || '',
+      weightKg: user.objectData.WeightKg || '',
+      bloodGroup: user.objectData.BloodGroup || '',
+      allergies: user.objectData.Allergies || '',
+      medicalConditions: user.objectData.MedicalConditions || '',
+      currentMedications: user.objectData.CurrentMedications || '',
+      emergencyContactName: user.objectData.EmergencyContactName || '',
+      emergencyContactPhone: user.objectData.EmergencyContactPhone || '',
     });
-    const [stats, setStats] = React.useState({
-      totalDocuments: 0,
-      totalCycles: 0,
-      totalPrescriptions: 0,
-      memberSince: ''
-    });
-    const [isLoading, setIsLoading] = React.useState(true);
-    const [successMessage, setSuccessMessage] = React.useState('');
+  }, [user]);
 
-    React.useEffect(() => {
-      loadUserStats();
-    }, [user]);
+  useEffect(() => {
+    let mounted = true;
 
-    const loadUserStats = async () => {
-      try {
-        const [documents, cycles, prescriptions] = await Promise.all([
-          getUserDocuments(user.objectId),
-          getUserCycles(user.objectId),
-          getUserPrescriptions(user.objectId)
-        ]);
+    Promise.all([
+      getUserDocuments(user.objectId),
+      getUserCycles(user.objectId),
+      getUserPrescriptions(user.objectId),
+    ])
+      .then(([documents, cycles, prescriptions]) => {
+        if (mounted) {
+          setStats({
+            documents: documents.length,
+            cycles: cycles.length,
+            prescriptions: prescriptions.length,
+          });
+        }
+      })
+      .catch((err) => {
+        console.error('Profile stats error:', err);
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
+      });
 
-        setStats({
-          totalDocuments: documents.length,
-          totalCycles: cycles.length,
-          totalPrescriptions: prescriptions.length,
-          memberSince: new Date(user.createdAt).toLocaleDateString()
-        });
-      } catch (error) {
-        console.error('Error loading user stats:', error);
-      } finally {
-        setIsLoading(false);
-      }
+    return () => {
+      mounted = false;
     };
+  }, [user.objectId]);
 
-    const handleSave = async (e) => {
-      e.preventDefault();
-      setIsSaving(true);
-      try {
-        await updateUserProfile(user.objectId, profileData);
-        
-        onUserUpdated({
-          ...user,
-          objectData: {
-            ...user.objectData,
-            Name: profileData.name,
-            Age: parseInt(profileData.age, 10),
-            Gender: profileData.gender,
-          },
-        });
+  const handleSave = async (event) => {
+    event.preventDefault();
+    setIsSaving(true);
+    setError('');
+    setMessage('');
 
-        setIsEditing(false);
-        setSuccessMessage('Profile updated successfully! 🎉');
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } catch (error) {
-        console.error('Error updating profile:', error);
-      } finally {
-        setIsSaving(false);
-      }
-    };
+    try {
+      const updatedProfile = await updateUserProfile(user.objectId, form);
 
-    if (isLoading) {
-      return (
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
-      );
+      onUserUpdated({
+        ...user,
+        objectData: {
+          ...user.objectData,
+          Name: updatedProfile.name,
+          Age: updatedProfile.age,
+          Gender: updatedProfile.gender,
+          HeightCm: updatedProfile.height_cm,
+          WeightKg: updatedProfile.weight_kg,
+          BloodGroup: updatedProfile.blood_group,
+          Allergies: updatedProfile.allergies,
+          MedicalConditions: updatedProfile.medical_conditions,
+          CurrentMedications: updatedProfile.current_medications,
+          EmergencyContactName: updatedProfile.emergency_contact_name,
+          EmergencyContactPhone: updatedProfile.emergency_contact_phone,
+        },
+      });
+
+      setIsEditing(false);
+      setMessage('Profile updated successfully.');
+    } catch (err) {
+      setError(err.message || 'Unable to update your profile.');
+    } finally {
+      setIsSaving(false);
     }
+  };
 
+  if (isLoading) {
     return (
-      <div className="space-y-6" data-name="profile" data-file="components/Profile.js">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gradient">Your Profile</h1>
-          {successMessage && (
-            <div className="bg-green-50 text-green-600 px-4 py-2 rounded-lg border border-green-200">
-              {successMessage}
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Personal Information */}
-          <div className="lg:col-span-2">
-            <div className="card">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold flex items-center space-x-2">
-                  <div className="icon-user text-purple-500"></div>
-                  <span>Personal Information</span>
-                </h3>
-                <button 
-                  onClick={() => setIsEditing(!isEditing)} 
-                  className="btn btn-secondary flex items-center space-x-2"
-                >
-                  <div className={`icon-${isEditing ? 'x' : 'edit'} text-lg`}></div>
-                  <span>{isEditing ? 'Cancel' : 'Edit'}</span>
-                </button>
-              </div>
-
-              {isEditing ? (
-                <form onSubmit={handleSave} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                      <input
-                        type="text"
-                        className="input-field"
-                        value={profileData.name}
-                        onChange={(e) => setProfileData({...profileData, name: e.target.value})}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-                      <p className="text-xs text-gray-500 mb-2">Managed by your account login</p>
-                      <input
-                        type="email"
-                        className="input-field bg-gray-50"
-                        value={profileData.email}
-                        readOnly
-                        aria-readonly="true"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
-                      <input
-                        type="number"
-                        className="input-field"
-                        value={profileData.age}
-                        onChange={(e) => setProfileData({...profileData, age: e.target.value})}
-                        min="1"
-                        max="120"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
-                      <select
-                        className="input-field"
-                        value={profileData.gender}
-                        onChange={(e) => setProfileData({...profileData, gender: e.target.value})}
-                      >
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="flex space-x-4">
-                    <button 
-                      type="submit" 
-                      disabled={isSaving}
-                      className="btn btn-primary flex items-center space-x-2"
-                    >
-                      {isSaving ? (
-                        <>
-                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          <span>Saving...</span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="icon-check text-lg"></div>
-                          <span>Save Changes</span>
-                        </>
-                      )}
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setIsEditing(false)}
-                      className="btn btn-secondary"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl flex items-center justify-center">
-                        <div className="icon-user text-xl text-white"></div>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Full Name</p>
-                        <p className="font-semibold text-gray-900">{user.objectData.Name}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center">
-                        <div className="icon-mail text-xl text-white"></div>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Email</p>
-                        <p className="font-semibold text-gray-900">{user.objectData.Email}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
-                      <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center">
-                        <div className="icon-calendar text-xl text-white"></div>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Age</p>
-                        <p className="font-semibold text-gray-900">{user.objectData.Age} years old</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl">
-                      <div className="w-12 h-12 bg-gradient-to-br from-pink-400 to-rose-500 rounded-xl flex items-center justify-center">
-                        <div className="icon-heart text-xl text-white"></div>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Gender</p>
-                        <p className="font-semibold text-gray-900 capitalize">{user.objectData.Gender}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Account Stats */}
-          <div className="space-y-6">
-            <div className="card">
-              <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2">
-                <div className="icon-chart-bar text-green-500"></div>
-                <span>Account Stats</span>
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                  <span className="text-sm text-gray-600">Health Records</span>
-                  <span className="font-bold text-blue-600">{stats.totalDocuments}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-pink-50 rounded-lg">
-                  <span className="text-sm text-gray-600">Cycle Entries</span>
-                  <span className="font-bold text-pink-600">{stats.totalCycles}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                  <span className="text-sm text-gray-600">Prescriptions</span>
-                  <span className="font-bold text-green-600">{stats.totalPrescriptions}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="card">
-              <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2">
-                <div className="icon-clock text-purple-500"></div>
-                <span>Account Info</span>
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-500">Member Since</p>
-                  <p className="font-semibold text-gray-900">{stats.memberSince}</p>
-                </div>
-                <div className="flex items-center space-x-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg">
-                  <div className="icon-shield-check text-lg"></div>
-                  <span>Local browser account</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  } catch (error) {
-    console.error('Profile component error:', error);
-    return (
-      <div className="text-center py-12">
-        <div className="icon-alert-circle text-4xl text-red-400 mx-auto mb-4"></div>
-        <p className="text-red-600">Error loading profile. Please refresh the page.</p>
+      <div className="space-y-5 animate-pulse">
+        <div className="h-36 rounded-3xl bg-white/70" />
+        <div className="h-80 rounded-3xl bg-white/70" />
       </div>
     );
   }
+
+  return (
+    <div className="space-y-6">
+      <section className="page-header">
+        <div>
+          <p className="eyebrow">Your information</p>
+          <h1 className="page-title">Your Profile</h1>
+          <p className="page-subtitle">
+            Keep the personal and health information you want close at hand.
+          </p>
+        </div>
+
+        <button
+          className={isEditing ? 'btn btn-light' : 'btn btn-primary'}
+          onClick={() => {
+            setIsEditing((current) => !current);
+            setError('');
+            setMessage('');
+          }}
+        >
+          {isEditing ? <X size={18} /> : <Edit3 size={18} />}
+          {isEditing ? 'Cancel editing' : 'Edit profile'}
+        </button>
+      </section>
+
+      {message && (
+        <div className="alert alert-success">
+          <Check size={17} />
+          {message}
+        </div>
+      )}
+
+      {error && (
+        <div className="alert alert-error">
+          <AlertCircle size={17} />
+          {error}
+        </div>
+      )}
+
+      {isEditing ? (
+        <form onSubmit={handleSave} className="space-y-6">
+          <ProfileSection title="Personal information" icon={<UserRound size={19} />}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <ProfileInput
+                label="Full name"
+                value={form.name}
+                onChange={(value) => setForm({ ...form, name: value })}
+                required
+              />
+              <ProfileInput label="Email address" value={form.email} readOnly />
+              <ProfileInput
+                label="Age"
+                type="number"
+                min="1"
+                max="120"
+                value={form.age}
+                onChange={(value) => setForm({ ...form, age: value })}
+                required
+              />
+              <label className="field-label">
+                Gender
+                <select
+                  className="input-control input-control-full mt-1"
+                  value={form.gender}
+                  onChange={(event) => setForm({ ...form, gender: event.target.value })}
+                >
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+            </div>
+          </ProfileSection>
+
+          <ProfileSection title="Body & health details" icon={<HeartPulse size={19} />}>
+            <div className="grid gap-4 md:grid-cols-3">
+              <ProfileInput
+                label="Height (cm)"
+                type="number"
+                min="1"
+                max="300"
+                value={form.heightCm}
+                onChange={(value) => setForm({ ...form, heightCm: value })}
+              />
+              <ProfileInput
+                label="Weight (kg)"
+                type="number"
+                min="1"
+                max="500"
+                value={form.weightKg}
+                onChange={(value) => setForm({ ...form, weightKg: value })}
+              />
+              <label className="field-label">
+                Blood group
+                <select
+                  className="input-control input-control-full mt-1"
+                  value={form.bloodGroup}
+                  onChange={(event) => setForm({ ...form, bloodGroup: event.target.value })}
+                >
+                  <option value="">Not added</option>
+                  {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((group) => (
+                    <option key={group}>{group}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <ProfileTextarea
+                label="Allergies"
+                placeholder="Food, medicine, environmental, or other allergies"
+                value={form.allergies}
+                onChange={(value) => setForm({ ...form, allergies: value })}
+              />
+              <ProfileTextarea
+                label="Medical conditions"
+                placeholder="Conditions you want recorded"
+                value={form.medicalConditions}
+                onChange={(value) => setForm({ ...form, medicalConditions: value })}
+              />
+              <ProfileTextarea
+                label="Current medications"
+                placeholder="Medicines you are currently taking"
+                value={form.currentMedications}
+                onChange={(value) => setForm({ ...form, currentMedications: value })}
+              />
+            </div>
+          </ProfileSection>
+
+          <ProfileSection title="Emergency contact" icon={<AlertCircle size={19} />}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <ProfileInput
+                label="Contact name"
+                value={form.emergencyContactName}
+                onChange={(value) => setForm({ ...form, emergencyContactName: value })}
+              />
+              <ProfileInput
+                label="Contact phone"
+                type="tel"
+                value={form.emergencyContactPhone}
+                onChange={(value) => setForm({ ...form, emergencyContactPhone: value })}
+              />
+            </div>
+          </ProfileSection>
+
+          <div className="flex justify-end">
+            <button className="btn btn-primary" type="submit" disabled={isSaving}>
+              <Save size={18} />
+              {isSaving ? 'Saving...' : 'Save profile'}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <>
+          <section className="profile-hero">
+            <div className="avatar avatar-large avatar-gradient">
+              {user.objectData.Name?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-2xl font-black text-slate-900">
+                {user.objectData.Name || 'Your profile'}
+              </h2>
+              <p className="mt-1 flex items-center gap-2 text-sm text-slate-500">
+                <Mail size={15} />
+                {user.objectData.Email}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="tag tag-purple">Women-focused space</span>
+                <span className="tag tag-green"><ShieldCheck size={13} /> Account connected</span>
+              </div>
+            </div>
+          </section>
+
+          <section className="grid gap-5 md:grid-cols-3">
+            <ProfileStat label="Health records" value={stats.documents} icon={<FileIcon />} />
+            <ProfileStat label="Cycle entries" value={stats.cycles} icon={<CalendarDays size={20} />} />
+            <ProfileStat label="Prescriptions" value={stats.prescriptions} icon={<PillIcon />} />
+          </section>
+
+          <section className="grid gap-6 lg:grid-cols-2">
+            <ProfileSection title="Personal information" icon={<UserRound size={19} />}>
+              <InfoGrid
+                items={[
+                  ['Full name', user.objectData.Name || 'Not added'],
+                  ['Email', user.objectData.Email || 'Not added'],
+                  ['Age', user.objectData.Age ? user.objectData.Age + ' years' : 'Not added'],
+                  ['Gender', user.objectData.Gender || 'Not added'],
+                ]}
+              />
+            </ProfileSection>
+
+            <ProfileSection title="Body & health details" icon={<HeartPulse size={19} />}>
+              <InfoGrid
+                items={[
+                  ['Height', user.objectData.HeightCm ? user.objectData.HeightCm + ' cm' : 'Not added'],
+                  ['Weight', user.objectData.WeightKg ? user.objectData.WeightKg + ' kg' : 'Not added'],
+                  ['Blood group', user.objectData.BloodGroup || 'Not added'],
+                  ['Current medicines', user.objectData.CurrentMedications || 'Not added'],
+                ]}
+              />
+              <div className="mt-4 grid gap-3">
+                <InfoBlock label="Allergies" value={user.objectData.Allergies} />
+                <InfoBlock label="Medical conditions" value={user.objectData.MedicalConditions} />
+              </div>
+            </ProfileSection>
+
+            <ProfileSection title="Emergency contact" icon={<AlertCircle size={19} />}>
+              <InfoGrid
+                items={[
+                  ['Name', user.objectData.EmergencyContactName || 'Not added'],
+                  ['Phone', user.objectData.EmergencyContactPhone || 'Not added'],
+                ]}
+              />
+            </ProfileSection>
+          </section>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ProfileSection({ title, icon, children }) {
+  return (
+    <section className="surface-card">
+      <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+        <div className="section-icon">{icon}</div>
+        <h2 className="text-lg font-extrabold text-slate-900">{title}</h2>
+      </div>
+      <div className="pt-5">{children}</div>
+    </section>
+  );
+}
+
+function ProfileInput({ label, value, onChange, type = 'text', readOnly = false, min, max, required = false }) {
+  return (
+    <label className="field-label">
+      {label}
+      <input
+        type={type}
+        className={'input-control input-control-full mt-1' + (readOnly ? ' bg-slate-50' : '')}
+        value={value}
+        onChange={(event) => onChange?.(event.target.value)}
+        readOnly={readOnly}
+        min={min}
+        max={max}
+        required={required}
+      />
+    </label>
+  );
+}
+
+function ProfileTextarea({ label, placeholder, value, onChange }) {
+  return (
+    <label className="field-label">
+      {label}
+      <textarea
+        className="input-control input-control-full mt-1 min-h-28 resize-none"
+        placeholder={placeholder}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
+  );
+}
+
+function InfoGrid({ items }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {items.map(([label, value]) => (
+        <div key={label} className="rounded-2xl bg-slate-50 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">{label}</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm font-semibold leading-6 text-slate-700">{value || 'Not added'}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function InfoBlock({ label, value }) {
+  return (
+    <div className="rounded-2xl bg-slate-50 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">{label}</p>
+      <p className="mt-1 whitespace-pre-wrap text-sm font-semibold leading-6 text-slate-700">
+        {value || 'Not added'}
+      </p>
+    </div>
+  );
+}
+
+function ProfileStat({ label, value, icon }) {
+  return (
+    <div className="surface-card flex items-center gap-4">
+      <div className="stat-icon stat-icon-purple">{icon}</div>
+      <div>
+        <p className="text-2xl font-black text-slate-900">{value}</p>
+        <p className="text-sm text-slate-500">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+function FileIcon() {
+  return <Activity size={20} />;
+}
+
+function PillIcon() {
+  return <HeartPulse size={20} />;
 }
 
 export default Profile;
