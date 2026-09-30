@@ -267,7 +267,7 @@ function Profile({ user, onUserUpdated }) {
                 </div>
                 <div className="flex items-center space-x-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg">
                   <div className="icon-shield-check text-lg"></div>
-                  <span>Account Verified & Secure</span>
+                  <span>Local browser account</span>
                 </div>
               </div>
             </div>
