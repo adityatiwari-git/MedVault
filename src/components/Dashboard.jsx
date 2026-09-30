@@ -75,7 +75,7 @@ function Dashboard({ user }) {
           </div>
           <div className="flex items-center space-x-2 text-sm text-green-600 bg-green-50 px-4 py-2 rounded-full">
             <div className="icon-shield-check text-lg"></div>
-            <span>Protected with private access controls</span>
+            <span>Stored in this browser</span>
           </div>
         </div>
 
