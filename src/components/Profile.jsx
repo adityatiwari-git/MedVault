@@ -1,4 +1,6 @@
 import React from 'react';
+import { getUserDocuments, getUserCycles, getUserPrescriptions } from '../services/storage.js';
+import { updateUserProfile } from '../services/auth.js';
 
 function Profile({ user }) {
   try {
@@ -48,15 +50,9 @@ function Profile({ user }) {
       e.preventDefault();
       setIsSaving(true);
       try {
-        await trickleUpdateObject('user', user.objectId, {
-          Name: profileData.name,
-          Email: profileData.email,
-          Age: parseInt(profileData.age),
-          Gender: profileData.gender
-        });
+        await updateUserProfile(user.objectId, profileData);
         
         const updatedUser = {...user, objectData: {...user.objectData, ...profileData, Age: parseInt(profileData.age)}};
-        localStorage.setItem('medvault_user', JSON.stringify(updatedUser));
         
         setIsEditing(false);
         setSuccessMessage('Profile updated successfully! 🎉');
