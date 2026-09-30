@@ -18,19 +18,19 @@ function Dashboard({ user }) {
     const loadDashboardData = async () => {
       try {
         // Load user documents
-        const documents = await trickleListObjects(`document:${user.objectId}`, 10, true);
+        const documents = await getUserDocuments(user.objectId, 10);
         
         // Load prescriptions for reminders
-        const prescriptions = await trickleListObjects(`prescription:${user.objectId}`, 10, true);
+        const prescriptions = await getUserPrescriptions(user.objectId, 10);
         
         // Load recent cycle data
-        const cycles = await trickleListObjects(`cycle_tracking:${user.objectId}`, 3, true);
+        const cycles = await getUserCycles(user.objectId, 3);
 
         setStats({
-          totalDocuments: documents.items.length,
-          recentUploads: documents.items.slice(0, 3),
-          upcomingReminders: prescriptions.items.filter(p => p.objectData.ReminderEnabled).slice(0, 3),
-          cycleInsights: cycles.items[0] || null
+          totalDocuments: documents.length,
+          recentUploads: documents.slice(0, 3),
+          upcomingReminders: prescriptions.filter(p => p.objectData.ReminderEnabled).slice(0, 3),
+          cycleInsights: cycles[0] || null
         });
       } catch (error) {
         console.error('Error loading dashboard data:', error);
