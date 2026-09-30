@@ -40,7 +40,7 @@ function Records({ user }) {
       if (!file) return;
       const maxSize = 10 * 1024 * 1024;
       if (file.size > maxSize) {
-        alert('File size must be less than 10MB');
+        alert('File size must be less than 2MB');
         return;
       }
 
@@ -230,7 +230,7 @@ function Records({ user }) {
                       <button type="button" onClick={() => fileInputRef.current?.click()} className="text-purple-600 hover:text-purple-700 font-medium">
                         browse files
                       </button>
-                      <p className="text-xs text-gray-400">Images, PDFs, documents (max 10MB)</p>
+                      <p className="text-xs text-gray-400">Images, PDFs, documents (max 2MB)</p>
                     </div>
                   )}
                 </div>
