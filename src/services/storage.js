@@ -44,7 +44,7 @@ function mapCycle(row) {
       Notes: row.notes,
       AIPrediction: row.ai_prediction,
       FlowIntensity: row.flow_intensity,
-      Symptoms: row.symptoms,
+      Symptoms: row.symptoms ? row.symptoms.split(', ').filter(Boolean) : [],
     },
   };
 }
@@ -166,7 +166,9 @@ export async function createCycleEntry(userId, cycleData) {
     notes: cycleData.notes || null,
     ai_prediction: cycleData.aiPrediction || null,
     flow_intensity: cycleData.flowIntensity || null,
-    symptoms: cycleData.symptoms || null,
+    symptoms: Array.isArray(cycleData.symptoms)
+      ? cycleData.symptoms.join(', ')
+      : cycleData.symptoms || null,
   }).select().single();
 
   if (error) throw error;
