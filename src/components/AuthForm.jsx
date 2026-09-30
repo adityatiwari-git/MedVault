@@ -62,10 +62,10 @@ function AuthForm({ onLogin }) {
               <div className="icon-heart text-3xl text-white"></div>
             </div>
             <h1 className="text-4xl font-bold text-gradient mb-3">MedVault</h1>
-            <p className="text-gray-600 text-lg">Your secure women's health companion</p>
+            <p className="text-gray-600 text-lg">Your local women's health companion</p>
             <div className="flex items-center justify-center space-x-2 mt-4 text-sm text-gray-500">
               <div className="icon-shield-check text-green-500"></div>
-              <span>Private & Secure</span>
+              <span>Stored in this browser</span>
               <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
               <div className="icon-heart text-pink-500"></div>
               <span>Women-Focused</span>
