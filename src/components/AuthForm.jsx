@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { ArrowRight, Heart, LockKeyhole, Mail, ShieldCheck, UserRound } from 'lucide-react';
-import { loginUser, registerUser, resetPassword } from '../services/auth.js';
+import { loginUser, registerUser } from '../services/auth.js';
 
 function AuthForm({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
-  const [showReset, setShowReset] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -18,7 +17,6 @@ function AuthForm({ onLogin }) {
 
   const switchMode = (loginMode) => {
     setIsLogin(loginMode);
-    setShowReset(false);
     setError('');
     setMessage('');
   };
@@ -37,34 +35,10 @@ function AuthForm({ onLogin }) {
       }
 
       const result = await registerUser(formData);
-
-      if (!result.hasSession) {
-        setIsLogin(true);
-        setMessage('Your account was created. Check your email to confirm it, then sign in.');
-        setFormData((current) => ({ ...current, password: '' }));
-        return;
-      }
-
+      setMessage('Your local MedVault account was created on this browser.');
       onLogin(result.user);
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleReset = async (event) => {
-    event.preventDefault();
-    setIsLoading(true);
-    setError('');
-    setMessage('');
-
-    try {
-      await resetPassword(formData.email);
-      setMessage('If that email is registered, a password reset link has been sent.');
-      setShowReset(false);
-    } catch (err) {
-      setError(err.message || 'Unable to send the reset email.');
     } finally {
       setIsLoading(false);
     }
@@ -115,143 +89,116 @@ function AuthForm({ onLogin }) {
           </div>
 
           <div className="auth-card">
-            {!showReset && (
-              <div className="mb-6 rounded-2xl bg-slate-100/80 p-1.5">
-                <div className="grid grid-cols-2 gap-1">
-                  <button type="button" onClick={() => switchMode(true)} className={`auth-tab ${isLogin ? 'auth-tab-active' : ''}`}>
-                    Login
-                  </button>
-                  <button type="button" onClick={() => switchMode(false)} className={`auth-tab ${!isLogin ? 'auth-tab-active' : ''}`}>
-                    Create account
-                  </button>
-                </div>
+            <div className="mb-6 rounded-2xl bg-slate-100/80 p-1.5">
+              <div className="grid grid-cols-2 gap-1">
+                <button
+                  type="button"
+                  onClick={() => switchMode(true)}
+                  className={'auth-tab ' + (isLogin ? 'auth-tab-active' : '')}
+                >
+                  Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchMode(false)}
+                  className={'auth-tab ' + (!isLogin ? 'auth-tab-active' : '')}
+                >
+                  Create account
+                </button>
               </div>
-            )}
+            </div>
 
             <div className="mb-6">
               <p className="text-sm font-semibold text-purple-600">
-                {showReset ? 'Account recovery' : isLogin ? 'Welcome back' : 'Create your MedVault'}
+                {isLogin ? 'Welcome back' : 'Create your MedVault'}
               </p>
               <h2 className="mt-1 text-2xl font-extrabold text-slate-900">
-                {showReset ? 'Reset your password' : isLogin ? 'Your health space is waiting.' : 'A healthier record starts here.'}
+                {isLogin ? 'Your health space is waiting.' : 'A healthier record starts here.'}
               </h2>
             </div>
 
-            {showReset ? (
-              <form onSubmit={handleReset} className="space-y-4">
-                <div className="input-wrap">
-                  <Mail size={18} />
-                  <input
-                    type="email"
-                    placeholder="Email address"
-                    className="input-control"
-                    value={formData.email}
-                    onChange={(event) => setFormData({ ...formData, email: event.target.value })}
-                    required
-                  />
-                </div>
-                <button type="submit" className="btn btn-primary w-full" disabled={isLoading}>
-                  {isLoading ? 'Sending...' : 'Send reset link'}
-                </button>
-                <button type="button" className="btn btn-ghost w-full" onClick={() => setShowReset(false)}>
-                  Back to login
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {!isLogin && (
-                  <>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {!isLogin && (
+                <>
+                  <div className="input-wrap">
+                    <UserRound size={18} />
+                    <input
+                      type="text"
+                      placeholder="Full name"
+                      className="input-control"
+                      value={formData.name}
+                      onChange={(event) => setFormData({ ...formData, name: event.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="input-wrap">
-                      <UserRound size={18} />
+                      <span className="text-sm font-bold text-slate-400">Age</span>
                       <input
-                        type="text"
-                        placeholder="Full name"
+                        type="number"
+                        placeholder="Age"
+                        min="1"
+                        max="120"
                         className="input-control"
-                        value={formData.name}
-                        onChange={(event) => setFormData({ ...formData, name: event.target.value })}
+                        value={formData.age}
+                        onChange={(event) => setFormData({ ...formData, age: event.target.value })}
                         required
                       />
                     </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="input-wrap">
-                        <span className="text-sm font-bold text-slate-400">Age</span>
-                        <input
-                          type="number"
-                          placeholder="Age"
-                          min="1"
-                          max="120"
-                          className="input-control"
-                          value={formData.age}
-                          onChange={(event) => setFormData({ ...formData, age: event.target.value })}
-                          required
-                        />
-                      </div>
-                      <select
-                        className="input-control select-control"
-                        value={formData.gender}
-                        onChange={(event) => setFormData({ ...formData, gender: event.target.value })}
-                      >
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                  </>
-                )}
-
-                <div className="input-wrap">
-                  <Mail size={18} />
-                  <input
-                    type="email"
-                    placeholder="Email address"
-                    className="input-control"
-                    value={formData.email}
-                    onChange={(event) => setFormData({ ...formData, email: event.target.value })}
-                    required
-                  />
-                </div>
-
-                <div className="input-wrap">
-                  <LockKeyhole size={18} />
-                  <input
-                    type="password"
-                    placeholder="Password"
-                    className="input-control"
-                    value={formData.password}
-                    onChange={(event) => setFormData({ ...formData, password: event.target.value })}
-                    required
-                  />
-                </div>
-
-                {isLogin && (
-                  <div className="text-right">
-                    <button
-                      type="button"
-                      className="text-sm font-semibold text-purple-600 hover:text-purple-700"
-                      onClick={() => {
-                        setShowReset(true);
-                        setError('');
-                        setMessage('');
-                      }}
+                    <select
+                      className="input-control select-control"
+                      value={formData.gender}
+                      onChange={(event) => setFormData({ ...formData, gender: event.target.value })}
                     >
-                      Forgot password?
-                    </button>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
                   </div>
-                )}
+                </>
+              )}
 
-                {message && <div className="alert alert-success">{message}</div>}
-                {error && <div className="alert alert-error">{error}</div>}
+              <div className="input-wrap">
+                <Mail size={18} />
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  className="input-control"
+                  value={formData.email}
+                  onChange={(event) => setFormData({ ...formData, email: event.target.value })}
+                  required
+                />
+              </div>
 
-                <button type="submit" className="btn btn-primary w-full justify-center" disabled={isLoading}>
-                  {isLoading ? 'Please wait...' : isLogin ? 'Login to MedVault' : 'Create account'}
-                  {!isLoading && <ArrowRight size={18} />}
-                </button>
-              </form>
-            )}
+              <div className="input-wrap">
+                <LockKeyhole size={18} />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  className="input-control"
+                  value={formData.password}
+                  onChange={(event) => setFormData({ ...formData, password: event.target.value })}
+                  required
+                />
+              </div>
 
-            <div className="mt-6 flex items-center justify-center gap-2 border-t border-slate-100 pt-5 text-xs font-medium text-slate-400">
+              {message && <div className="alert alert-success">{message}</div>}
+              {error && <div className="alert alert-error">{error}</div>}
+
+              <button type="submit" className="btn btn-primary w-full justify-center" disabled={isLoading}>
+                {isLoading ? 'Please wait...' : isLogin ? 'Login to MedVault' : 'Create account'}
+                {!isLoading && <ArrowRight size={18} />}
+              </button>
+            </form>
+
+            <div className="mt-5 rounded-2xl bg-slate-50 p-3 text-center text-xs leading-5 text-slate-500">
+              Your MedVault account and health records are stored locally in this browser.
+              They are not synced to a cloud service.
+            </div>
+
+            <div className="mt-4 flex items-center justify-center gap-2 border-t border-slate-100 pt-5 text-xs font-medium text-slate-400">
               <ShieldCheck size={15} className="text-emerald-500" />
-              <span>Your health space is private to your account.</span>
+              <span>Your health space stays on this device.</span>
             </div>
           </div>
         </div>
