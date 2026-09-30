@@ -1,5 +1,6 @@
 import React from 'react';
 import { getUserCycles, createCycleEntry, updateCycleEntry, deleteCycleEntry } from '../services/storage.js';
+import { generateCycleInsights } from '../services/ai.js';
 
 function CycleTracker({ user }) {
   try {
@@ -50,46 +51,7 @@ function CycleTracker({ user }) {
           symptoms: c.objectData.Symptoms || []
         }));
 
-        const systemPrompt = `You are an advanced menstrual cycle prediction AI. Analyze the user's cycle history and provide accurate predictions.
-
-OUTPUT FORMAT (JSON only, no markdown):
-{
-  "nextPeriodDate": "YYYY-MM-DD",
-  "nextPeriodConfidence": "high/medium/low",
-  "averageCycleLength": number,
-  "cycleRegularity": "regular/irregular",
-  "fertilityWindow": {
-    "start": "YYYY-MM-DD",
-    "end": "YYYY-MM-DD",
-    "ovulationDay": "YYYY-MM-DD"
-  },
-  "insights": [
-    "insight 1",
-    "insight 2",
-    "insight 3"
-  ],
-  "recommendations": [
-    "recommendation 1",
-    "recommendation 2"
-  ]
-}
-
-CALCULATION RULES:
-- Calculate average cycle length from period start to next period start
-- Predict next period based on last period + average cycle length
-- Ovulation typically occurs 14 days before next period
-- Fertility window: 5 days before ovulation + ovulation day
-- Consider flow patterns and symptoms for insights
-- Confidence: high if cycles vary <3 days, medium if 3-5 days, low if >5 days
-
-Current date: ${new Date().toISOString().split('T')[0]}`;
-
-        const userPrompt = `Cycle History:\n${JSON.stringify(cycleHistory, null, 2)}`;
-        
-        let aiResponse = await invokeAIAgent(systemPrompt, userPrompt);
-        aiResponse = aiResponse.replace(/```json/g, '').replace(/```/g, '').trim();
-        
-        const predictionData = JSON.parse(aiResponse);
+        const predictionData = await generateCycleInsights(cycleHistory);
         setPredictions(predictionData);
       } catch (error) {
         console.error('Error generating predictions:', error);
@@ -103,13 +65,7 @@ Current date: ${new Date().toISOString().split('T')[0]}`;
       e.preventDefault();
       try {
         if (editingCycle) {
-          await trickleUpdateObject(`cycle_tracking:${user.objectId}`, editingCycle.objectId, {
-            PeriodStartDate: cycleForm.startDate,
-            PeriodEndDate: cycleForm.endDate,
-            FlowIntensity: cycleForm.flowIntensity,
-            Symptoms: cycleForm.symptoms,
-            Notes: cycleForm.notes
-          });
+          await updateCycleEntry(user.objectId, editingCycle.objectId, cycleForm);
         } else {
           await createCycleEntry(user.objectId, cycleForm);
         }
