@@ -209,7 +209,7 @@ What would you like to know?`,
             </button>
             <div className="flex items-center space-x-2 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg">
               <div className="icon-shield-check text-lg"></div>
-              <span>Private & Secure</span>
+              <span>Local mode</span>
             </div>
           </div>
         </div>
@@ -221,7 +221,7 @@ What would you like to know?`,
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {[
                 "What's a normal menstrual cycle?",
-                What are common causes of period cramps?
+                "What are common causes of period cramps?"
               ].map((suggestion, index) => (
                 <button
                   key={index}
