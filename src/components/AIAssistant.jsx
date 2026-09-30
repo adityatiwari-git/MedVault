@@ -221,7 +221,7 @@ What would you like to know?`,
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {[
                 "What's a normal menstrual cycle?",
-                "Latest 2025 women's health research"
+                What are common causes of period cramps?
               ].map((suggestion, index) => (
                 <button
                   key={index}
