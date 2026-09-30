@@ -4,7 +4,7 @@ MedVault is a women's health record application for storing health documents, tr
 
 ## Current migration
 
-MedVault is being moved from its original Trickle runtime to a standalone React application.
+MedVault has been migrated from its original Trickle runtime to a standalone React application.
 
 Target architecture:
 
@@ -20,7 +20,7 @@ Supabase private Storage
 Server-side AI endpoints
 ```
 
-The original Trickle implementation is preserved under `legacy/trickle/` for reference during the migration.
+The original Trickle implementation is preserved under `legacy/trickle/` as an archived reference. It is not loaded by the active application.
 
 ## Features
 
@@ -66,6 +66,8 @@ The original Trickle implementation is preserved under `legacy/trickle/` for ref
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 AI_API_KEY=
+AI_API_URL=https://api.openai.com/v1/chat/completions
+AI_MODEL=gpt-4o-mini
 ```
 
 Only public Supabase browser settings use the `VITE_` prefix. AI provider credentials must remain server-side.
@@ -84,7 +86,6 @@ src/
 ├── components/          # React UI components
 ├── services/            # Auth, database/storage, and AI boundaries
 ├── lib/                 # Supabase client
-├── legacy-bridge.js     # Temporary compatibility layer for old component calls
 ├── App.jsx
 ├── main.jsx
 └── styles.css
@@ -105,12 +106,13 @@ legacy/
 - [x] Auth service boundary
 - [x] Database schema and RLS
 - [x] Private storage policies
-- [x] Compatibility bridge
-- [ ] Connect and test a real Supabase project
-- [ ] Finish server-side AI endpoints
-- [ ] Remove remaining Trickle-era component calls
-- [ ] Run production build and end-to-end testing
-- [ ] Deploy independently
+- [x] Direct Supabase service usage in active UI
+- [x] Real Supabase project configured with Auth, PostgreSQL, RLS, and private Storage
+- [x] Server-side AI API boundary
+- [x] Removed active Trickle compatibility layer and hardcoded search credential
+- [x] Production CI build workflow
+- [ ] Configure deployment secrets and AI provider key
+- [ ] Complete live browser smoke test after deployment
 
 ---
-Last updated: September 2026
+Last updated: September 30, 2026
