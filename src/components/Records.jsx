@@ -129,8 +129,6 @@ function Records({ user }) {
 
           // Only update file if a new one was uploaded
           if (uploadForm.file) {
-            await simulateUpload(uploadForm.file);
-            updateData.FileURL = fileUrl;
             updateData.FileType = uploadForm.file.type;
             updateData.FileSize = uploadForm.file.size;
             updateData.HasFile = true;
@@ -139,15 +137,8 @@ function Records({ user }) {
           await updateUserDocument(user.objectId, editingDoc.objectId, { fileName: updateData.FileName, category: updateData.Category, notes: updateData.Notes, file: uploadForm.file });
         } else {
           // Create new document
-          let fileUrl = '';
-          let fileType = '';
-          let fileSize = 0;
-
-          if (uploadForm.file) {
-            fileUrl = await simulateUpload(uploadForm.file);
-            fileType = uploadForm.file.type;
-            fileSize = uploadForm.file.size;
-          }
+          const fileType = uploadForm.file?.type || '';
+          const fileSize = uploadForm.file?.size || 0;
 
           const documentData = {
             fileName: uploadForm.fileName,
