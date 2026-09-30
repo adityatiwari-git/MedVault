@@ -12,19 +12,33 @@ function AuthForm({ onLogin }) {
       gender: 'female'
     });
     const [error, setError] = React.useState('');
+    const [message, setMessage] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
 
     const handleSubmit = async (e) => {
       e.preventDefault();
       setIsLoading(true);
       setError('');
+      setMessage('');
 
       try {
         let user;
         if (isLogin) {
           user = await loginUser(formData.email, formData.password);
         } else {
-          user = await registerUser(formData);
+          const result = await registerUser(formData);
+
+          if (!result.hasSession) {
+            setMessage('Account created. Please check your email to confirm your account, then log in.');
+            setIsLogin(true);
+            setFormData((current) => ({
+              ...current,
+              password: '',
+            }));
+            return;
+          }
+
+          user = result.user;
         }
         onLogin(user);
       } catch (err) {
@@ -151,6 +165,13 @@ function AuthForm({ onLogin }) {
                   required
                 />
               </div>
+
+              {message && (
+                <div className="bg-green-50 border border-green-200 text-green-700 text-sm p-4 rounded-xl flex items-center space-x-2">
+                  <div className="icon-check-circle text-green-500"></div>
+                  <span>{message}</span>
+                </div>
+              )}
 
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-600 text-sm p-4 rounded-xl flex items-center space-x-2">
