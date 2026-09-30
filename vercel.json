@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/ai/[action].js": {
+      "maxDuration": 30
+    }
+  }
+}
