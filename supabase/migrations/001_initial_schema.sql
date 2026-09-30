@@ -52,8 +52,8 @@ create table if not exists public.cycle_entries (
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
-security invoker
-set search_path = public
+security definer
+set search_path = ''
 as $$
 begin
   insert into public.profiles (id, name, age, gender)
@@ -70,7 +70,9 @@ begin
         updated_at = now();
   return new;
 end;
-$$;
+$;
+
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
