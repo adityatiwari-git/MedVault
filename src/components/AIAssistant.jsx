@@ -41,7 +41,7 @@ Hi ${user.objectData.Name}! I'm your personal health assistant.
 **How to get the best answers:**
 • Ask specific questions
 • Mention your age or health context when relevant
-• I can search the web for latest medical information
+• I can explain general health information using the information available to this app
 
 Ask me anything to get started!`,
           timestamp: new Date().toISOString()
