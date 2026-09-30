@@ -27,12 +27,37 @@ async function getProviderConfig() {
   const apiKey = Netlify.env.get("AI_API_KEY");
   const apiUrl = Netlify.env.get("AI_API_URL") || "https://api.openai.com/v1/chat/completions";
   const model = Netlify.env.get("AI_MODEL") || "gpt-4o-mini";
+  const supabaseUrl = Netlify.env.get("SUPABASE_URL");
+  const supabaseAnonKey = Netlify.env.get("SUPABASE_ANON_KEY");
 
   if (!apiKey) {
     throw new Error("AI service is not configured.");
   }
 
-  return { apiKey, apiUrl, model };
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Authentication service is not configured.");
+  }
+
+  return { apiKey, apiUrl, model, supabaseUrl, supabaseAnonKey };
+}
+
+async function authenticateRequest(req) {
+  const authorization = req.headers.get("authorization");
+
+  if (!authorization?.startsWith("Bearer ")) {
+    return false;
+  }
+
+  const { supabaseUrl, supabaseAnonKey } = await getProviderConfig();
+
+  const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: {
+      apikey: supabaseAnonKey,
+      Authorization: authorization,
+    },
+  });
+
+  return response.ok;
 }
 
 async function callModel(system, user) {
@@ -74,6 +99,12 @@ export default async (req: Request) => {
   }
 
   try {
+    const authenticated = await authenticateRequest(req);
+
+    if (!authenticated) {
+      return Response.json({ error: "Authentication required." }, { status: 401 });
+    }
+
     const body = await req.json();
 
     if (JSON.stringify(body).length > MAX_BODY_SIZE) {
