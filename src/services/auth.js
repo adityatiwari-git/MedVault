@@ -1,49 +1,59 @@
-import { supabase } from '../lib/supabase.js';
+const USERS_KEY = 'medvault_users';
+const SESSION_KEY = 'medvault_session';
 
 const PROFILE_FIELDS = [
   'name',
   'age',
   'gender',
-  'height_cm',
-  'weight_kg',
-  'blood_group',
+  'heightCm',
+  'weightKg',
+  'bloodGroup',
   'allergies',
-  'medical_conditions',
-  'current_medications',
-  'emergency_contact_name',
-  'emergency_contact_phone',
+  'medicalConditions',
+  'currentMedications',
+  'emergencyContactName',
+  'emergencyContactPhone',
 ];
 
-function mapUser(user, profile = {}) {
+function readUsers() {
+  try {
+    return JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function writeUsers(users) {
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+}
+
+function mapUser(user) {
   return {
     objectId: user.id,
-    createdAt: user.created_at,
+    createdAt: user.createdAt,
     objectData: {
-      Name: profile.name ?? user.user_metadata?.name ?? '',
-      Email: user.email ?? '',
-      Age: profile.age ?? user.user_metadata?.age ?? '',
-      Gender: profile.gender ?? user.user_metadata?.gender ?? 'female',
-      HeightCm: profile.height_cm ?? '',
-      WeightKg: profile.weight_kg ?? '',
-      BloodGroup: profile.blood_group ?? '',
-      Allergies: profile.allergies ?? '',
-      MedicalConditions: profile.medical_conditions ?? '',
-      CurrentMedications: profile.current_medications ?? '',
-      EmergencyContactName: profile.emergency_contact_name ?? '',
-      EmergencyContactPhone: profile.emergency_contact_phone ?? '',
+      Name: user.name || '',
+      Email: user.email || '',
+      Age: user.age || '',
+      Gender: user.gender || 'female',
+      HeightCm: user.heightCm || '',
+      WeightKg: user.weightKg || '',
+      BloodGroup: user.bloodGroup || '',
+      Allergies: user.allergies || '',
+      MedicalConditions: user.medicalConditions || '',
+      CurrentMedications: user.currentMedications || '',
+      EmergencyContactName: user.emergencyContactName || '',
+      EmergencyContactPhone: user.emergencyContactPhone || '',
     },
   };
 }
 
-async function loadProfile(user) {
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select(PROFILE_FIELDS.join(', '))
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (error) throw error;
-  return mapUser(user, profile || {});
+async function hashPassword(password) {
+  const data = new TextEncoder().encode(password);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash))
+    .map((value) => value.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 function validateSignup(data) {
@@ -59,82 +69,129 @@ function validateSignup(data) {
   }
 }
 
+function buildUser(data, passwordHash) {
+  return {
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+    passwordHash,
+    name: data.name.trim(),
+    email: data.email.trim().toLowerCase(),
+    age: Number(data.age),
+    gender: data.gender || 'female',
+    heightCm: '',
+    weightKg: '',
+    bloodGroup: '',
+    allergies: '',
+    medicalConditions: '',
+    currentMedications: '',
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+  };
+}
+
 export async function registerUser(userData) {
   validateSignup(userData);
 
-  const { data, error } = await supabase.auth.signUp({
-    email: userData.email.trim().toLowerCase(),
-    password: userData.password,
-    options: {
-      data: {
-        name: userData.name.trim(),
-        age: Number(userData.age),
-        gender: userData.gender || 'female',
-      },
-    },
-  });
+  const email = userData.email.trim().toLowerCase();
+  const users = readUsers();
 
-  if (error) throw error;
-  if (!data.user) throw new Error('Account could not be created.');
+  if (users[email]) {
+    throw new Error('An account with this email already exists. Please log in.');
+  }
+
+  const passwordHash = await hashPassword(userData.password);
+  const user = buildUser(userData, passwordHash);
+
+  users[email] = user;
+  writeUsers(users);
+  localStorage.setItem(SESSION_KEY, user.id);
 
   return {
-    user: mapUser(data.user, userData),
-    hasSession: Boolean(data.session),
+    user: mapUser(user),
+    hasSession: true,
   };
 }
 
 export async function loginUser(email, password) {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.trim().toLowerCase(),
-    password,
-  });
+  const normalizedEmail = email.trim().toLowerCase();
+  const users = readUsers();
+  const user = users[normalizedEmail];
 
-  if (error) throw error;
-  return loadProfile(data.user);
+  if (!user) {
+    throw new Error('No local account was found for this email.');
+  }
+
+  const passwordHash = await hashPassword(password);
+  if (passwordHash !== user.passwordHash) {
+    throw new Error('Incorrect email or password.');
+  }
+
+  localStorage.setItem(SESSION_KEY, user.id);
+  return mapUser(user);
 }
 
 export async function getCurrentUser() {
-  const { data, error } = await supabase.auth.getSession();
+  const sessionId = localStorage.getItem(SESSION_KEY);
+  if (!sessionId) return null;
 
-  if (error) throw error;
-  if (!data.session?.user) return null;
+  const users = readUsers();
+  const user = Object.values(users).find((item) => item.id === sessionId);
 
-  return loadProfile(data.session.user);
+  if (!user) {
+    localStorage.removeItem(SESSION_KEY);
+    return null;
+  }
+
+  return mapUser(user);
 }
 
 export async function logout() {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
-}
-
-export async function resetPassword(email) {
-  const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase());
-  if (error) throw error;
+  localStorage.removeItem(SESSION_KEY);
 }
 
 export async function updateUserProfile(userId, profileData) {
+  const users = readUsers();
+  const email = Object.keys(users).find((key) => users[key].id === userId);
+
+  if (!email) throw new Error('Your local account could not be found.');
+
+  const user = users[email];
   const update = {
+    ...user,
     name: profileData.name.trim(),
-    age: profileData.age ? Number(profileData.age) : null,
+    age: profileData.age ? Number(profileData.age) : '',
     gender: profileData.gender || 'female',
-    height_cm: profileData.heightCm ? Number(profileData.heightCm) : null,
-    weight_kg: profileData.weightKg ? Number(profileData.weightKg) : null,
-    blood_group: profileData.bloodGroup || null,
-    allergies: profileData.allergies?.trim() || null,
-    medical_conditions: profileData.medicalConditions?.trim() || null,
-    current_medications: profileData.currentMedications?.trim() || null,
-    emergency_contact_name: profileData.emergencyContactName?.trim() || null,
-    emergency_contact_phone: profileData.emergencyContactPhone?.trim() || null,
-    updated_at: new Date().toISOString(),
+    heightCm: profileData.heightCm ? Number(profileData.heightCm) : '',
+    weightKg: profileData.weightKg ? Number(profileData.weightKg) : '',
+    bloodGroup: profileData.bloodGroup || '',
+    allergies: profileData.allergies?.trim() || '',
+    medicalConditions: profileData.medicalConditions?.trim() || '',
+    currentMedications: profileData.currentMedications?.trim() || '',
+    emergencyContactName: profileData.emergencyContactName?.trim() || '',
+    emergencyContactPhone: profileData.emergencyContactPhone?.trim() || '',
+    updatedAt: new Date().toISOString(),
   };
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(update)
-    .eq('id', userId)
-    .select(PROFILE_FIELDS.join(', '))
-    .single();
+  users[email] = update;
+  writeUsers(users);
 
-  if (error) throw error;
-  return data;
+  return {
+    name: update.name,
+    age: update.age,
+    gender: update.gender,
+    height_cm: update.heightCm,
+    weight_kg: update.weightKg,
+    blood_group: update.bloodGroup,
+    allergies: update.allergies,
+    medical_conditions: update.medicalConditions,
+    current_medications: update.currentMedications,
+    emergency_contact_name: update.emergencyContactName,
+    emergency_contact_phone: update.emergencyContactPhone,
+  };
+}
+
+// Kept as a compatibility helper for older UI code.
+// Browser-local accounts cannot send email reset links.
+export async function resetPassword() {
+  throw new Error('Password reset email is not available in browser-only mode. Use the account on the same browser where it was created.');
 }
