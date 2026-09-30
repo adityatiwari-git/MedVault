@@ -1,87 +1,101 @@
-import React from 'react';
+import {
+  CalendarHeart,
+  FileHeart,
+  LayoutDashboard,
+  LogOut,
+  UserRound,
+} from 'lucide-react';
 
-function Navigation({ activeTab, onTabChange, onLogout, user, isMobileOpen, onMobileClose }) {
-  try {
-    const menuItems = [
-      { id: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
-      { id: 'records', label: 'Health Records', icon: 'folder-medical' },
-      { id: 'cycle', label: 'Cycle Tracker', icon: 'calendar-heart' },
-      { id: 'ai-assistant', label: 'AI Assistant', icon: 'bot' },
-      { id: 'profile', label: 'Profile', icon: 'user' }
-    ];
+const menuItems = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'records', label: 'Health Records', icon: FileHeart },
+  { id: 'cycle', label: 'Cycle Tracker', icon: CalendarHeart },
+  { id: 'profile', label: 'Profile', icon: UserRound },
+];
 
-    const handleTabChange = (tabId) => {
-      onTabChange(tabId);
-      if (onMobileClose) onMobileClose();
-    };
+function Navigation({
+  activeTab,
+  onTabChange,
+  onLogout,
+  user,
+  isMobileOpen,
+  onMobileClose,
+}) {
+  const handleTabChange = (tabId) => {
+    onTabChange(tabId);
+    onMobileClose?.();
+  };
 
-    return (
-      <>
-        {/* Mobile Overlay */}
-        {isMobileOpen && (
-          <div 
-            className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={onMobileClose}
-          />
-        )}
-        
-        <nav className={`fixed left-0 top-0 h-full w-72 glass-effect shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`} data-name="navigation" data-file="components/Navigation.js">
-        <div className="p-8">
-          <div className="flex items-center space-x-4 mb-10 animate-float">
-            <div className="w-12 h-12 icon-container" 
-                 style={{background: 'linear-gradient(135deg, #d946ef, #a855f7)'}}>
-              <div className="icon-heart text-2xl text-white"></div>
+  return (
+    <>
+      {isMobileOpen && (
+        <button
+          type="button"
+          className="lg:hidden fixed inset-0 bg-slate-950/30 backdrop-blur-[2px] z-40"
+          onClick={onMobileClose}
+          aria-label="Close menu"
+        />
+      )}
+
+      <aside
+        className={`fixed left-0 top-0 z-50 h-full w-[280px] border-r border-white/70 bg-white/90 backdrop-blur-xl shadow-[0_0_40px_rgba(148,163,184,0.14)] transition-transform duration-300 lg:translate-x-0 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
+        <div className="flex h-full flex-col p-6">
+          <div className="flex items-center gap-3 px-2">
+            <div className="brand-mark">
+              <span>♡</span>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gradient">MedVault</h2>
-              <p className="text-sm text-gray-500 font-medium">Your Health Companion</p>
+              <p className="text-xl font-extrabold tracking-tight text-gradient">MedVault</p>
+              <p className="text-xs font-medium text-slate-400">Women's health companion</p>
             </div>
           </div>
 
-          <div className="space-y-3 mb-12">
-            {menuItems.map((item, index) => (
+          <div className="mt-10">
+            <p className="nav-section-title">Your space</p>
+            <nav className="mt-3 space-y-1.5">
+              {menuItems.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => handleTabChange(id)}
+                  className={`nav-link w-full ${activeTab === id ? 'nav-link-active' : ''}`}
+                >
+                  <Icon size={19} strokeWidth={2.1} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div className="mt-auto">
+            <div className="rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 via-white to-pink-50 p-4">
+              <div className="flex items-center gap-3">
+                <div className="avatar avatar-gradient">
+                  {user?.objectData?.Name?.charAt(0)?.toUpperCase() || 'U'}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-slate-800">
+                    {user?.objectData?.Name || 'User'}
+                  </p>
+                  <p className="truncate text-xs text-slate-400">
+                    {user?.objectData?.Email || ''}
+                  </p>
+                </div>
+              </div>
+
               <button
-                key={item.id}
-                onClick={() => handleTabChange(item.id)}
-                className={`nav-item w-full text-left ${
-                  activeTab === item.id ? 'active' : ''
-                }`}
-                style={{animationDelay: `${index * 0.1}s`}}
+                onClick={onLogout}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
               >
-                <div className={`icon-${item.icon} text-xl`}></div>
-                <span className="font-medium">{item.label}</span>
+                <LogOut size={17} />
+                Logout
               </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="absolute bottom-0 left-0 right-0 p-8 border-t border-gray-200">
-          <div className="flex items-center space-x-4 mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-400 rounded-xl flex items-center justify-center">
-              <div className="icon-user text-xl text-white"></div>
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold text-gray-900">{user?.objectData?.Name}</p>
-              <p className="text-sm text-gray-500">{user?.objectData?.Email}</p>
             </div>
           </div>
-          <button
-            onClick={onLogout}
-            className="btn btn-secondary w-full flex items-center justify-center space-x-3"
-          >
-            <div className="icon-log-out text-lg"></div>
-            <span>Logout</span>
-          </button>
         </div>
-      </nav>
+      </aside>
     </>
-    );
-  } catch (error) {
-    console.error('Navigation component error:', error);
-    return null;
-  }
+  );
 }
 
 export default Navigation;

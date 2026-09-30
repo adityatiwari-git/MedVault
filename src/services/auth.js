@@ -1,37 +1,49 @@
-const USERS_KEY = 'medvault_local_users';
-const SESSION_KEY = 'medvault_local_session';
+import { supabase } from '../lib/supabase.js';
 
-function readUsers() {
-  try {
-    return JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-  } catch {
-    return [];
-  }
-}
+const PROFILE_FIELDS = [
+  'name',
+  'age',
+  'gender',
+  'height_cm',
+  'weight_kg',
+  'blood_group',
+  'allergies',
+  'medical_conditions',
+  'current_medications',
+  'emergency_contact_name',
+  'emergency_contact_phone',
+];
 
-function saveUsers(users) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
-
-function mapUser(user) {
+function mapUser(user, profile = {}) {
   return {
     objectId: user.id,
-    createdAt: user.createdAt,
+    createdAt: user.created_at,
     objectData: {
-      Name: user.name,
-      Email: user.email,
-      Age: user.age,
-      Gender: user.gender,
+      Name: profile.name ?? user.user_metadata?.name ?? '',
+      Email: user.email ?? '',
+      Age: profile.age ?? user.user_metadata?.age ?? '',
+      Gender: profile.gender ?? user.user_metadata?.gender ?? 'female',
+      HeightCm: profile.height_cm ?? '',
+      WeightKg: profile.weight_kg ?? '',
+      BloodGroup: profile.blood_group ?? '',
+      Allergies: profile.allergies ?? '',
+      MedicalConditions: profile.medical_conditions ?? '',
+      CurrentMedications: profile.current_medications ?? '',
+      EmergencyContactName: profile.emergency_contact_name ?? '',
+      EmergencyContactPhone: profile.emergency_contact_phone ?? '',
     },
   };
 }
 
-async function hashPassword(password) {
-  const bytes = new TextEncoder().encode(password);
-  const digest = await crypto.subtle.digest('SHA-256', bytes);
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
+async function loadProfile(user) {
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select(PROFILE_FIELDS.join(', '))
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return mapUser(user, profile || {});
 }
 
 function validateSignup(data) {
@@ -50,73 +62,79 @@ function validateSignup(data) {
 export async function registerUser(userData) {
   validateSignup(userData);
 
-  const users = readUsers();
-  const email = userData.email.trim().toLowerCase();
+  const { data, error } = await supabase.auth.signUp({
+    email: userData.email.trim().toLowerCase(),
+    password: userData.password,
+    options: {
+      data: {
+        name: userData.name.trim(),
+        age: Number(userData.age),
+        gender: userData.gender || 'female',
+      },
+    },
+  });
 
-  if (users.some((user) => user.email === email)) {
-    throw new Error('An account with this email already exists.');
-  }
-
-  const user = {
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-    name: userData.name.trim(),
-    email,
-    age: Number(userData.age),
-    gender: userData.gender || 'female',
-    passwordHash: await hashPassword(userData.password),
-  };
-
-  users.push(user);
-  saveUsers(users);
-  localStorage.setItem(SESSION_KEY, user.id);
+  if (error) throw error;
+  if (!data.user) throw new Error('Account could not be created.');
 
   return {
-    user: mapUser(user),
-    hasSession: true,
+    user: mapUser(data.user, userData),
+    hasSession: Boolean(data.session),
   };
 }
 
 export async function loginUser(email, password) {
-  const users = readUsers();
-  const normalizedEmail = email.trim().toLowerCase();
-  const user = users.find((item) => item.email === normalizedEmail);
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.trim().toLowerCase(),
+    password,
+  });
 
-  if (!user || user.passwordHash !== await hashPassword(password)) {
-    throw new Error('Invalid email or password.');
-  }
-
-  localStorage.setItem(SESSION_KEY, user.id);
-  return mapUser(user);
+  if (error) throw error;
+  return loadProfile(data.user);
 }
 
 export async function getCurrentUser() {
-  const sessionId = localStorage.getItem(SESSION_KEY);
-  if (!sessionId) return null;
+  const { data, error } = await supabase.auth.getSession();
 
-  const user = readUsers().find((item) => item.id === sessionId);
-  return user ? mapUser(user) : null;
+  if (error) throw error;
+  if (!data.session?.user) return null;
+
+  return loadProfile(data.session.user);
 }
 
-export function logout() {
-  localStorage.removeItem(SESSION_KEY);
+export async function logout() {
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
 }
 
-export function updateUserProfile(userId, profileData) {
-  const users = readUsers();
-  const userIndex = users.findIndex((user) => user.id === userId);
+export async function resetPassword(email) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase());
+  if (error) throw error;
+}
 
-  if (userIndex === -1) {
-    throw new Error('Local account not found.');
-  }
-
-  users[userIndex] = {
-    ...users[userIndex],
+export async function updateUserProfile(userId, profileData) {
+  const update = {
     name: profileData.name.trim(),
-    age: Number(profileData.age),
-    gender: profileData.gender,
+    age: profileData.age ? Number(profileData.age) : null,
+    gender: profileData.gender || 'female',
+    height_cm: profileData.heightCm ? Number(profileData.heightCm) : null,
+    weight_kg: profileData.weightKg ? Number(profileData.weightKg) : null,
+    blood_group: profileData.bloodGroup || null,
+    allergies: profileData.allergies?.trim() || null,
+    medical_conditions: profileData.medicalConditions?.trim() || null,
+    current_medications: profileData.currentMedications?.trim() || null,
+    emergency_contact_name: profileData.emergencyContactName?.trim() || null,
+    emergency_contact_phone: profileData.emergencyContactPhone?.trim() || null,
+    updated_at: new Date().toISOString(),
   };
 
-  saveUsers(users);
-  return mapUser(users[userIndex]);
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(update)
+    .eq('id', userId)
+    .select(PROFILE_FIELDS.join(', '))
+    .single();
+
+  if (error) throw error;
+  return data;
 }

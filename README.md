@@ -1,59 +1,68 @@
-# MedVault
+# MedVault — Women's Health Companion
 
-MedVault is a simple, browser-based women’s health record project built with React and Vite.
+MedVault is a women-focused health record application built with React, Vite, and Supabase.
 
-It is intentionally local-only: there is no cloud backend and no external AI service.
+This stage intentionally focuses only on the core application experience. Additional modules can be added later one at a time.
 
-## Features
+## Core features
 
-- Local sign up and login
-- Personal profile
-- Health record management
-- Local document storage in the browser
+- Account sign up and login
+- Personal health profile
+- Body and health details
+- Emergency contact information
+- Health document upload and secure file access
+- Document categories and search
+- Prescription and medicine records
+- Medication reminder status
 - Menstrual cycle tracking
-- Prescription and reminder data
-- Simple local health assistant
-- Responsive dashboard
+- Cycle history, symptoms, flow, and notes
+- Responsive dashboard and sidebar navigation
 
-## How it works
+## Current product scope
 
-All application data is stored in the current browser using:
+The current version does **not** include:
 
-- localStorage for accounts, profile data, records, cycles, prescriptions, and chat history
-- IndexedDB for uploaded document files
+- AI chatbot or AI health assistant
+- Doctor directory or nearby-doctor search
+- Location services
+- Other future modules
 
-This keeps the project easy to run as a normal frontend application.
+Those features will be added separately after the core application is stable.
 
-## Run locally
+## Data architecture
+
+The active application uses Supabase for:
+
+- Authentication
+- PostgreSQL data
+- Row Level Security
+- Private medical document storage
+
+User-owned records are associated with the authenticated Supabase user.
+
+## Local development
+
+Install dependencies:
 
 ```bash
 npm install
+```
+
+Start the development server:
+
+```bash
 npm run dev
 ```
 
-Then open the local Vite URL shown in the terminal.
-
-## Build
+Build the application:
 
 ```bash
 npm run build
 ```
 
-The production files are created in dist/.
+## Health-data notes
 
-## Deployment
-
-This project is a static React/Vite application and can be deployed to any static-site host.
-
-Typical settings:
-
-Build command: npm run build
-
-Publish directory: dist
-
-## Important note
-
-This is a local demo/prototype, not a medical-grade cloud system. Data is stored in the browser used to run the app. Clearing browser data can remove saved information, and the application does not provide cloud backup or medical-data compliance guarantees.
+MedVault is a software project for organizing personal health information. It should not be described as HIPAA-compliant, end-to-end encrypted, or a medical device unless those claims are separately implemented and verified.
 
 ---
 
