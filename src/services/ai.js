@@ -1,25 +1,34 @@
-// Server-side AI service boundary.
-// Provider credentials must never be exposed to the browser.
+import { supabase } from '../lib/supabase.js';
 
-const MAX_BODY_SIZE = 12000;
-
+// Provider credentials stay on the server. The browser only sends the user's
+// Supabase access token with each AI request.
 async function requestAI(endpoint, payload) {
+  const { data, error } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+
+  if (error || !accessToken) {
+    throw new Error('Your session has expired. Please log in again.');
+  }
+
   const response = await fetch(endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
     body: JSON.stringify(payload),
   });
 
-  let data = {};
+  let responseData = {};
   try {
-    data = await response.json();
+    responseData = await response.json();
   } catch {}
 
   if (!response.ok) {
-    throw new Error(data.error || 'AI service request failed.');
+    throw new Error(responseData.error || 'AI service request failed.');
   }
 
-  return data.response ?? '';
+  return responseData.response ?? '';
 }
 
 export async function generateDocumentSummary(documentText, category) {
