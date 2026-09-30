@@ -18,7 +18,7 @@ const prompts = {
     user: `Question: ${question || ""}\n\nPrivate health context:\n${JSON.stringify(userHealthContext || {}, null, 2)}`,
   }),
   "enhanced-health-assistance-search": ({ question, userHealthContext }) => ({
-    system: "You are MedVault's women's-health information assistant. Give careful, evidence-aware educational information. Do not diagnose, prescribe, or claim certainty from incomplete health data. No external web search is performed by this deployment; do not claim that you searched the web or cite sources you did not retrieve. Mention when a clinician should be consulted.",
+    system: "You are MedVault's women's-health information assistant. Give careful, evidence-aware educational information. No external web search is performed by this deployment; do not claim that you searched the web or cite sources you did not retrieve. Do not diagnose or prescribe. Mention when a clinician should be consulted.",
     user: `Question: ${question || ""}\n\nPrivate health context:\n${JSON.stringify(userHealthContext || {}, null, 2)}`,
   }),
 };
@@ -68,33 +68,56 @@ async function callModel(system, user) {
   return content;
 }
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed." });
-    return;
+exports.handler = async (event) => {
+  if (event.httpMethod !== "POST") {
+    return {
+      statusCode: 405,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "Method not allowed." }),
+    };
   }
 
   try {
-    const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
+    const body = event.body ? JSON.parse(event.body) : {};
+
     if (JSON.stringify(body).length > MAX_BODY_SIZE) {
-      res.status(413).json({ error: "Request is too large." });
-      return;
+      return {
+        statusCode: 413,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "Request is too large." }),
+      };
     }
 
-    const action = req.url?.split("/").pop()?.split("?")[0];
+    const action =
+      event.pathParameters?.splat ||
+      event.queryStringParameters?.action ||
+      "";
+
     const builder = prompts[action];
 
     if (!builder) {
-      res.status(404).json({ error: "Unknown AI endpoint." });
-      return;
+      return {
+        statusCode: 404,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "Unknown AI endpoint." }),
+      };
     }
 
     const { system, user } = builder(body);
     const response = await callModel(system, user);
 
-    res.status(200).json({ response });
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ response }),
+    };
   } catch (error) {
     console.error("AI endpoint error:", error.message);
-    res.status(500).json({ error: "AI service is temporarily unavailable." });
+
+    return {
+      statusCode: 500,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "AI service is temporarily unavailable." }),
+    };
   }
-}
+};

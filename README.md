@@ -2,7 +2,7 @@
 
 MedVault is a women's health record application for storing health documents, tracking menstrual cycles, managing prescriptions, and accessing educational AI-assisted health information.
 
-## Current migration
+## Current architecture
 
 MedVault has been migrated from its original Trickle runtime to a standalone React application.
 
@@ -11,13 +11,15 @@ Target architecture:
 ```
 React + Vite
     ↓
+Netlify
+    ↓
 Supabase Auth
     ↓
 Supabase PostgreSQL + Row Level Security
     ↓
 Supabase private Storage
     ↓
-Server-side AI endpoints
+Netlify serverless AI function
 ```
 
 The original Trickle implementation is preserved under `legacy/trickle/` as an archived reference. It is not loaded by the active application.
@@ -37,10 +39,11 @@ The original Trickle implementation is preserved under `legacy/trickle/` as an a
 - React 18
 - Vite
 - Tailwind CSS
+- Netlify
 - Supabase Auth
 - Supabase PostgreSQL
 - Supabase Storage
-- Server-side AI API boundary
+- Netlify serverless function for AI requests
 
 ## Local setup
 
@@ -60,7 +63,12 @@ The original Trickle implementation is preserved under `legacy/trickle/` as an a
    npm run dev
    ```
 
-## Environment variables
+## Netlify deployment
+
+1. Import the GitHub repository into Netlify.
+2. Use the repository root as the project directory.
+3. Netlify will use `netlify.toml` for the build command, publish directory, serverless function directory, and AI route.
+4. Add the following environment variables in Netlify:
 
 ```text
 VITE_SUPABASE_URL=
@@ -70,7 +78,10 @@ AI_API_URL=https://api.openai.com/v1/chat/completions
 AI_MODEL=gpt-4o-mini
 ```
 
-Only public Supabase browser settings use the `VITE_` prefix. AI provider credentials must remain server-side.
+5. Deploy the `main` branch.
+6. Complete the live browser smoke test for authentication, records, cycle tracking, and AI features.
+
+`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are browser-visible configuration values. The AI provider credentials must remain server-side.
 
 ## Security notes
 
@@ -90,6 +101,10 @@ src/
 ├── main.jsx
 └── styles.css
 
+netlify/
+└── functions/
+    └── ai.cjs           # Server-side AI function
+
 supabase/
 └── migrations/          # Database, RLS, and storage policies
 
@@ -97,7 +112,7 @@ legacy/
 └── trickle/             # Archived original implementation
 ```
 
-## Migration status
+## Migration and deployment status
 
 - [x] Vite application foundation
 - [x] React components moved into `src/`
@@ -111,11 +126,10 @@ legacy/
 - [x] Server-side AI API boundary
 - [x] Removed active Trickle compatibility layer and hardcoded search credential
 - [x] Production CI build workflow
-- [ ] Configure deployment secrets and AI provider key
+- [x] Netlify deployment configuration
+- [x] Netlify AI serverless function
+- [ ] Configure Netlify environment variables and AI provider key
 - [ ] Complete live browser smoke test after deployment
 
-### Deployment note
-The Vercel integration is connected to the GitHub repository, but the current connected Vercel API does not expose the project/deployment resource for inspection. No live production URL is claimed until the deployment can be verified.
-
 ---
-Last updated: September 30, 2026
+Last updated: October 1, 2026
