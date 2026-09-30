@@ -75,7 +75,7 @@ function Dashboard({ user }) {
           </div>
           <div className="flex items-center space-x-2 text-sm text-green-600 bg-green-50 px-4 py-2 rounded-full">
             <div className="icon-shield-check text-lg"></div>
-            <span>All data secured & encrypted</span>
+            <span>Protected with private access controls</span>
           </div>
         </div>
 
@@ -204,7 +204,7 @@ function Dashboard({ user }) {
                           {prescription.objectData.Frequency}
                         </span>
                         <span className="text-xs text-gray-500">
-                          Next: Today
+                          Schedule: {prescription.objectData.Frequency}
                         </span>
                       </div>
                     </div>
