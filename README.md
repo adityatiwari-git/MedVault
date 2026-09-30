@@ -79,7 +79,8 @@ AI_MODEL=gpt-4o-mini
 ```
 
 5. Deploy the `main` branch.
-6. Complete the live browser smoke test for authentication, records, cycle tracking, and AI features.
+6. Set `AI_API_KEY` before testing the AI assistant. The server-side AI function will remain unavailable until an AI provider key is configured.
+7. Complete the live browser smoke test for authentication, records, cycle tracking, and AI features.
 
 `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are browser-visible configuration values. The AI provider credentials must remain server-side.
 
