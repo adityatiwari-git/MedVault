@@ -2,10 +2,10 @@ name: Scheduled Project Maintenance
 
 on:
   schedule:
-    - cron: "17 4 * * *"
-    - cron: "43 8 * * *"
-    - cron: "26 12 * * *"
-    - cron: "14 16 * * *"
+    - cron: "17 4 4 10 *"
+    - cron: "43 8 12 10 *"
+    - cron: "26 12 21 10 *"
+    - cron: "14 16 29 10 *"
   workflow_dispatch:
 
 permissions:
