@@ -1,0 +1,10 @@
+{
+  "2026-10-13": {
+    "task_id": "data_privacy_notes",
+    "description": "Add a concise note explaining the current browser-local data model and its limitations."
+  },
+  "2026-10-22": {
+    "task_id": "development_workflow",
+    "description": "Add a simple frontend development workflow for MedVault."
+  }
+}
