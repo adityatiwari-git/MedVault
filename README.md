@@ -87,3 +87,7 @@ The schedule is expressed in IST for planning. GitHub Actions converts the sched
 > **No meaningful change = no commit and no pull request.**
 
 The workflow does not use Claude, OpenAI, or another external AI coding service to generate repository changes.
+
+## Data Privacy Notes
+
+MedVault currently stores health records in the browser. This release is not a cloud health-record service, and browser or device loss can affect locally stored records.
