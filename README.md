@@ -91,3 +91,7 @@ The workflow does not use Claude, OpenAI, or another external AI coding service 
 ## Data Privacy Notes
 
 MedVault currently stores health records in the browser. This release is not a cloud health-record service, and browser or device loss can affect locally stored records.
+
+## Development Workflow
+
+For local development, install dependencies with npm install, run the app with npm run dev, and verify production output with npm run build. Keep feature work small and verify the existing core health-record flows after changes.
