@@ -91,3 +91,7 @@ The workflow does not use Claude, OpenAI, or another external AI coding service 
 ## Data Privacy Notes
 
 MedVault currently stores health records in the browser. This release is not a cloud health-record service, and browser or device loss can affect locally stored records.
+
+## Product Expansion Plan
+
+The next product stage will introduce a backend boundary so MedVault can later support a secure database, doctor-directory data, and an AI assistant without exposing service credentials in the browser. External API keys must remain in deployment environment variables and must never be committed to the repository.
